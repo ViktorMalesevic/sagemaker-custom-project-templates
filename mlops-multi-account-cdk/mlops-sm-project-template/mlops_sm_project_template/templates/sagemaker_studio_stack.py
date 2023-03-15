@@ -74,7 +74,7 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
             "LeadDSUserID",
             type="String",
             description="Lead Data Scientist user ID can be found in top right corner of AWS console,\
-                 for example '<last-name>_<first-name>_<GID>' ",
+                 for example 'Lead_Data_Scientist_Role' ",
             min_length=1,
         ).value_as_string
 

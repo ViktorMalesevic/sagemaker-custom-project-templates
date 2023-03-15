@@ -190,7 +190,7 @@ class SMRoles(Construct):
         ssm.StringParameter(
             self,
             "ssm-sg-ds-role",
-            parameter_name="/mlops/role/ds/{}".format(domain_name),
+            parameter_name="/mlops/dev/domain/role/ds",
             string_value=self.data_scientist_role.role_arn,
             simple_name=False,
         )
@@ -227,7 +227,7 @@ class SMRoles(Construct):
         ssm.StringParameter(
             self,
             "ssm-sg-lead-role",
-            parameter_name="/mlops/role/lead/{}".format(domain_name),
+            parameter_name="/mlops/dev/domain/role/lead",
             string_value=self.lead_data_scientist_role.role_arn,
             simple_name=False,
         )
@@ -260,7 +260,7 @@ class SMRoles(Construct):
         ssm.StringParameter(
             self,
             "ssm-sg-execution-role",
-            parameter_name="/mlops/role/execution/{}".format(domain_name),
+            parameter_name="/mlops/dev/domain/role/execution",
             string_value=self.sagemaker_studio_role.role_arn,
             simple_name=False,
         )
