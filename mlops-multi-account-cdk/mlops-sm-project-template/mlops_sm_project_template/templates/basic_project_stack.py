@@ -31,7 +31,9 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template.templates.ssm_construct import SSMConstruct
+from mlops_sm_project_template.templates.helper_scripts.ssm_construct import (
+    SSMConstruct,
+)
 
 from mlops_sm_project_template.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
@@ -40,11 +42,20 @@ from mlops_sm_project_template.templates.pipeline_constructs.deploy_pipeline_con
     DeployPipelineConstruct,
 )
 
+
 class MLOpsStack(Stack):
     DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate and register a model. The deploy pipeline creates a dev,preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
     TEMPLATE_NAME: str = "Basic MLOps template for real-time deployment"
 
-    def __init__(self, scope: Construct, construct_id: str, preprod_account: int, prod_account: int, deployment_region: str, **kwargs) -> None:
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        preprod_account: int,
+        prod_account: int,
+        deployment_region: str,
+        **kwargs,
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Define required parmeters
@@ -119,7 +130,7 @@ class MLOpsStack(Stack):
         s3_artifact = s3.Bucket(
             self,
             "S3Artifact",
-            bucket_name=f"mlops-{project_name}-{Aws.ACCOUNT_ID}", # Bucket name has a limit of 63 characters
+            bucket_name=f"mlops-{project_name}-{Aws.ACCOUNT_ID}",  # Bucket name has a limit of 63 characters
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
@@ -220,9 +231,15 @@ class MLOpsStack(Stack):
             ],
         )
 
-        seed_bucket = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket").to_string()
-        build_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/build").to_string()
-        deploy_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/deploy").to_string()
+        seed_bucket = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket"
+        ).to_string()
+        build_app_key = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/build"
+        ).to_string()
+        deploy_app_key = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/deploy"
+        ).to_string()
 
         kms_key = kms.Key(
             self,
@@ -244,7 +261,7 @@ class MLOpsStack(Stack):
         pipeline_artifact_bucket = s3.Bucket(
             self,
             "PipelineBucket",
-            bucket_name=f"pipeline-{project_name}-{Aws.ACCOUNT_ID}", # Bucket name has a limit of 63 characters
+            bucket_name=f"pipeline-{project_name}-{Aws.ACCOUNT_ID}",  # Bucket name has a limit of 63 characters
             encryption_key=kms_key,
             versioned=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,

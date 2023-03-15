@@ -32,7 +32,9 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template.templates.ssm_construct import SSMConstruct
+from mlops_sm_project_template.templates.helper_scripts.ssm_construct import (
+    SSMConstruct,
+)
 
 from mlops_sm_project_template.templates.byoc_pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
@@ -44,9 +46,19 @@ from mlops_sm_project_template.templates.byoc_pipeline_constructs.deploy_pipelin
 
 class MLOpsStack(Stack):
     DESCRIPTION: str = "This template includes a model building pipeline that includes a workflow to build your own containers, pre-process, train, evaluate and register a model. The deploy pipeline creates a dev, preprod and production endpoint. The target DEV/PREPROD/PROD accounts are predefined in the template."
-    TEMPLATE_NAME: str = "MLOps template for real-time deployment using your own container"
+    TEMPLATE_NAME: str = (
+        "MLOps template for real-time deployment using your own container"
+    )
 
-    def __init__(self, scope: Construct, construct_id: str, preprod_account: int, prod_account: int, deployment_region: str, **kwargs) -> None:
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        preprod_account: int,
+        prod_account: int,
+        deployment_region: str,
+        **kwargs,
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Define required parmeters
@@ -263,9 +275,15 @@ class MLOpsStack(Stack):
             )
         )
 
-        seed_bucket = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket").to_string()
-        build_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/build/byoc").to_string()
-        deploy_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/deploy").to_string()
+        seed_bucket = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket"
+        ).to_string()
+        build_app_key = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/build/byoc"
+        ).to_string()
+        deploy_app_key = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/deploy"
+        ).to_string()
 
         kms_key = kms.Key(
             self,
