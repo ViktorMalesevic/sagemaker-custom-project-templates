@@ -156,7 +156,7 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
             roles (_type_): _description_
         """
         with open(
-            "cdk_service_catalog/product_model/ml_ops/functions/enable_sm_projects/index.py",
+            "mlops-multi-account-cdk/mlops-sm-project-template/mlops_sm_project_template/templates/functions/enable_sm_projects/index.py",
             "r",
             encoding="utf-8",
         ) as file:
@@ -295,7 +295,7 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
             domain_id (_type_, optional): _description_. Defaults to None.
         """
         with open(
-            "cdk_service_catalog/product_model/ml_ops/functions/lifecycle_rule/index.py",
+            "mlops-multi-account-cdk/mlops-sm-project-template/mlops_sm_project_template/templates/functions/lifecycle_rule/index.py",
             "r",
             encoding="utf-8",
         ) as file:
