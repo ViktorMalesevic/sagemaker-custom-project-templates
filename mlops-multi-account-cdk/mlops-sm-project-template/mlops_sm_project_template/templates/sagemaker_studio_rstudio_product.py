@@ -1,4 +1,5 @@
-"""Sagemaker Studio domain Service Catalog product"""
+"""Sagemaker studio domain with RStudio Service Catalog product"""
+import os
 import base64
 from typing import List
 
@@ -29,7 +30,7 @@ JUPYTER_SERVER_APP_IMAGE_NAME = "jupyter-server-3"
 KERNEL_GATEWAY_APP_IMAGE_NAME = "datascience-2.0"
 
 
-class SagemakerStudioStack(servicecatalog.ProductStack):
+class SagemakerStudioRStudioStack(servicecatalog.ProductStack):
     """Class to create sagemaker studio domain product"""
 
     def __init__(
@@ -94,7 +95,9 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
         # Create roles to be used for sagemaker user profiles
         sm_roles = SMRoles(self, "sm-roles", domain_name)
 
-        # Create sagemaker studio domain
+        sagemaker_sg_id = Fn.import_value("DefaultSecurityGroup")
+
+        # create sagemaker studio domain
         self.studio_domain = self.sagemaker_studio_domain(
             domain_name,
             sm_roles.sagemaker_studio_role,
@@ -105,7 +108,6 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
             aws_region="eu-central-1",
         )
 
-        # Enable SageMaker projects in the domain
         self.enable_sagemaker_projects(
             [
                 sm_roles.sagemaker_studio_role.role_arn,
@@ -133,7 +135,7 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
             self.studio_domain.attr_domain_id,
         )
 
-        # Create lead DS user profile
+        # Create lead DS profile
         self.sagemaker_studio_profiles(
             self.studio_domain.attr_domain_id,
             "lead-data-scientist",
@@ -228,6 +230,8 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
             app_network_access_type="VpcOnly",
             default_user_settings=sagemaker.CfnDomain.UserSettingsProperty(
                 execution_role=sagemaker_studio_role.role_arn,
+                security_groups=security_group_ids,
+                sharing_settings=sagemaker.CfnDomain.SharingSettingsProperty(),
                 jupyter_server_app_settings=sagemaker.CfnDomain.JupyterServerAppSettingsProperty(
                     default_resource_spec=sagemaker.CfnDomain.ResourceSpecProperty(
                         instance_type="system",
@@ -244,14 +248,22 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
                         ),
                     ),
                 ),
-                security_groups=security_group_ids,
-                sharing_settings=sagemaker.CfnDomain.SharingSettingsProperty(),
             ),
             domain_name=domain_name,
             subnet_ids=subnet_ids,
             vpc_id=vpc_id,
         )
 
+        # Add R license to the domain
+        print("Add R license into the domain configuration")
+        domain.domain_settings = sagemaker.CfnDomain.DomainSettingsProperty(
+            r_studio_server_pro_domain_settings=sagemaker.CfnDomain.RStudioServerProDomainSettingsProperty(
+                domain_execution_role_arn=sagemaker_studio_role.role_arn,
+                # r_studio_package_manager_url="https://cran.ma.imperial.ac.uk/",
+            ),
+            security_group_ids=security_group_ids,
+        )
+        domain.app_security_group_management = "Service"
         return domain
 
     def sagemaker_studio_profiles(
@@ -278,7 +290,7 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
             domain_id=studio_domain_id,
             user_profile_name=user_name,
             user_settings=sagemaker.CfnUserProfile.UserSettingsProperty(
-                execution_role=role_arn,
+                execution_role=role_arn
             ),
             tags=[CfnTag(key="studiouserid", value=lead_ds_user_id)],
         )
