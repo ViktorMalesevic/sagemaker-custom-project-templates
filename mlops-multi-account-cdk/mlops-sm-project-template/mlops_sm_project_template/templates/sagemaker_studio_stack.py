@@ -116,7 +116,7 @@ class SagemakerStudioStack(servicecatalog.ProductStack):
 
         # Create lifecycle config for autoshutdown of idle instances
         with open(
-            "cdk_service_catalog/product_model/ml_ops/lifecycle_scripts/combined-pip-autoshutdown.sh",
+            "mlops-multi-account-cdk/mlops-sm-project-template/mlops_sm_project_template/templates/helper_scripts/idle-instance-autoshutdown.sh",
             "r",
             encoding="utf-8",
         ) as file:
