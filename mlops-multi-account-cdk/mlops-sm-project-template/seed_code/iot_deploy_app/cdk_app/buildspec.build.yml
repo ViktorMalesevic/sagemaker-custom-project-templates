@@ -1,0 +1,13 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - npm install -g aws-cdk
+      - cd cdk_app
+      - pip install -r requirements.txt
+      - cdk synth # --no-lookups
+
+artifacts:
+  base-directory: "cdk_app/cdk.out"
+  files: "**/*"

@@ -1,0 +1,52 @@
+---
+# custom greengrass components
+###
+custom-components:
+  car-detection:
+    component-name: "$PROJECT_NAME_ID$-car-detection"
+    root: "car-detection"
+    build: 
+        build_system: "zip"
+    model:
+      name: "car-detection.onnx"
+    Artifacts:
+    - URI: "s3://$BUCKET_NAME$/artifacts/greengrass/$COMPONENT_NAME$/$COMPONENT_VERSION$/car-detection.zip"
+      Unarchive: "ZIP"
+    Lifecycle: {}
+
+  car-recognition:
+    component-name: "$PROJECT_NAME_ID$-car-recognition"
+    root: "car-recognition"
+    build: 
+      build_system: "custom"
+      custom_build_command: 
+        - "bash"
+        - "compile/custom-build.sh"
+        - "$PROJECT_NAME_ID$-car-recognition"
+    model:
+      name: "model.tar.gz"
+      sagemaker-managed: "true"
+    Artifacts:
+    - URI: "s3://$BUCKET_NAME$/artifacts/greengrass/$COMPONENT_NAME$/$COMPONENT_VERSION$/model.tar.gz"
+    Lifecycle: 
+      Install:
+        RequiresPrivilege: "true"
+        Script: "tar -xvzf {artifacts:path}/model.tar.gz -C {artifacts:decompressedPath}/"
+
+  app:
+    component-name: "$PROJECT_NAME_ID$-greengrass-inference"
+    root: "app"
+    build: 
+      build_system: "zip"
+    Artifacts:
+    - Permission:
+        Execute: OWNER
+      URI: "s3://$BUCKET_NAME$/artifacts/greengrass/$COMPONENT_NAME$/$COMPONENT_VERSION$/app.zip"
+      Unarchive: ZIP
+    Lifecycle: 
+      SetEnv:
+        MODEL_DIR: '{car-detection:artifacts:decompressedPath}/car-detection/car-detection.onnx'
+      Install: pip install -r {artifacts:decompressedPath}/app/requirements.txt
+      Run: 
+        RequiresPrivilege: "true"
+        Script: python3 -u {artifacts:decompressedPath}/app/app.py --model-name $MODEL_DIR
