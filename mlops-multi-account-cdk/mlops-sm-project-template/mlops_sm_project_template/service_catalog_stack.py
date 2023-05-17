@@ -312,9 +312,41 @@ class ServiceCatalogStack(Stack):
             ),
         )
 
+        iot_build_app_asset = s3_assets.Asset(
+            self,
+            "IotBuildAsset",
+            path="seed_code/iot_build_app/",
+            bundling=BundlingOptions(
+                image=zip_image,
+                command=[
+                    "sh",
+                    "-c",
+                    """zip -r /asset-output/iot_build_app.zip .""",
+                ],
+                output_type=BundlingOutput.ARCHIVED,
+            ),
+        )
+        
+        iot_deploy_app_asset = s3_assets.Asset(
+            self,
+            "IoTDeployAsset",
+            path="seed_code/iot_deploy_app/",
+            bundling=BundlingOptions(
+                image=zip_image,
+                command=[
+                    "sh",
+                    "-c",
+                    """zip -r /asset-output/iot_deploy_app.zip .""",
+                ],
+                output_type=BundlingOutput.ARCHIVED,
+            ),
+        )
+
         build_app_asset.grant_read(grantee=products_launch_role)
         deploy_app_asset.grant_read(grantee=products_launch_role)
         byoc_build_app_asset.grant_read(grantee=products_launch_role)
+        iot_build_app_asset.grant_read(grantee=products_launch_role)
+        iot_deploy_app_asset.grant_read(grantee=products_launch_role)
 
         # Output the deployment bucket and key, for input into pipeline stack
         self.export_ssm(
@@ -336,6 +368,17 @@ class ServiceCatalogStack(Stack):
             "CodeDeployKey",
             "/mlops/code/deploy",
             deploy_app_asset.s3_object_key,
+        )
+
+        self.export_ssm(
+            "IoTCodeBuildKey",
+            "/mlops/code/iot_build",
+            iot_build_app_asset.s3_object_key,
+        )
+        self.export_ssm(
+            "IoTCodeDeployKey",
+            "/mlops/code/iot_deploy",
+            iot_deploy_app_asset.s3_object_key,
         )
 
 
