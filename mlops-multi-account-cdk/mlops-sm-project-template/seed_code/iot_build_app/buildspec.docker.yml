@@ -1,0 +1,9 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - cd docker
+      - chmod +x docker-build.sh
+      - ./docker-build.sh ${ECR_REPO_NAME}
+      - echo "Docker image built"
