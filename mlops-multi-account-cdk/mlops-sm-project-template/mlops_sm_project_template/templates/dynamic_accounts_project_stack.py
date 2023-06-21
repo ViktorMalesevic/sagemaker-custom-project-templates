@@ -31,7 +31,9 @@ import aws_cdk
 
 from constructs import Construct
 
-from mlops_sm_project_template.templates.ssm_construct import SSMConstruct
+from mlops_sm_project_template.templates.helper_scripts.ssm_construct import (
+    SSMConstruct,
+)
 
 from mlops_sm_project_template.templates.pipeline_constructs.build_pipeline_construct import (
     BuildPipelineConstruct,
@@ -248,9 +250,15 @@ class MLOpsStack(Stack):
             ],
         )
 
-        seed_bucket = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket").to_string()
-        build_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/build").to_string()
-        deploy_app_key = CfnDynamicReference(CfnDynamicReferenceService.SSM, "/mlops/code/deploy").to_string()
+        seed_bucket = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/seed_bucket"
+        ).to_string()
+        build_app_key = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/build"
+        ).to_string()
+        deploy_app_key = CfnDynamicReference(
+            CfnDynamicReferenceService.SSM, "/mlops/code/deploy"
+        ).to_string()
 
         kms_key = kms.Key(
             self,
