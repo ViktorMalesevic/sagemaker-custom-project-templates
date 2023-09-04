@@ -123,7 +123,7 @@ class PipelineStack(Stack):
                             },
                             "phases": {
                                 "install": {
-                                    "runtime-versions": {"ruby": 3.1},
+                                    "runtime-versions": {"ruby": 3.2, "python": 3.11},
                                     "commands": [
                                         "export date=`date +%Y-%m-%dT%H:%M:%S.%NZ`",
                                         "echo Installing cfn_nag - `pwd`",
@@ -145,6 +145,9 @@ class PipelineStack(Stack):
                                 },
                             },
                         }
+                    ),
+                    build_environment=codebuild.BuildEnvironment(
+                        build_image=codebuild.LinuxBuildImage.STANDARD_7_0,
                     ),
                 )
             ],
