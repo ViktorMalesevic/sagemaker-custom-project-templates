@@ -19,6 +19,7 @@ import importlib
 import json
 import logging
 import os
+from typing import Set
 from aws_cdk import (
     Aws,
     BundlingOptions,
@@ -120,6 +121,10 @@ class ServiceCatalogStack(Stack):
         products_launch_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("IAMFullAccess"))
 
         products_launch_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodeBuildAdminAccess")
+        )
+
+        products_launch_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodeCommitFullAccess")
         )
 
@@ -127,7 +132,7 @@ class ServiceCatalogStack(Stack):
             iam.ManagedPolicy.from_aws_managed_policy_name("AWSCodePipeline_FullAccess")
         )
 
-        products_launch_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"))
+        products_launch_role.add_managed_policy(iam.ManagedPolicy.from_aws_managed_policy_name("AWSLambda_FullAccess"))
         products_launch_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMReadOnlyAccess")
         )
@@ -142,6 +147,17 @@ class ServiceCatalogStack(Stack):
                 resources=[
                     "*"  # TODO lock this policy to only certain roles from the other account that are used for deploying the solution as defined in templates/pipeline_constructs/deploy_pipeline_stack.py
                 ],
+            ),
+        )
+
+        products_launch_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "s3:*",
+                    "s3-object-lambda:*",
+                ],
+                effect=iam.Effect.ALLOW,
+                resources=["*"],
             ),
         )
 
@@ -392,7 +408,7 @@ class ServiceCatalogStack(Stack):
     ):
 
         # i = 0  # used as a counter for the products
-
+        unique_source_path: Set[str] = set()
         for file in os.listdir(templates_directory):
             filename = os.fsdecode(file)
             if filename.endswith("_stack.py"):
@@ -417,7 +433,7 @@ class ServiceCatalogStack(Stack):
                         deployment_region=config_set["DEPLOYMENT_REGION"],
                         **kwargs,
                     )
-
+                self.prepare_template_assets(generated_template, unique_source_path, products_launch_role)
                 product = servicecatalog.CloudFormationProduct(
                     self,
                     f"Product-{template_py_file}",
@@ -452,6 +468,44 @@ class ServiceCatalogStack(Stack):
 
                 # i += 1
 
+    def prepare_template_assets(self, template_file: str, unique_source_path: Set[str], products_launch_role) -> None:
+        print(f'template file : {template_file}')
+        assets_file: str = template_file.replace('template.json', 'assets.json')
+        print(f'assets file : {assets_file}')
+
+        with open(assets_file) as f:
+            assets_obj = json.load(f)
+            files = assets_obj['files']
+            docker_images = assets_obj['dockerImages']
+
+            for key, value in files.items():
+                print(f'key : {key}')
+                print(f'value : {value}')
+                source_path: str = value['source']['path']
+                source_packaging: str = value['source']['packaging']
+                output_type: BundlingOutput = BundlingOutput.ARCHIVED if source_packaging == 'zip' else BundlingOutput.NOT_ARCHIVED
+                print(f'source_path : {source_path}')
+                print(f'source_packaging : {source_packaging}')
+                if unique_source_path.__contains__(source_path):
+                    continue
+                unique_source_path.add(source_path)
+
+                for k, v in value['destinations'].items():
+                    destination_bucket_name = v['bucketName']
+                    destination_object_key = v['objectKey']
+                    destination_assume_role_arn = v['assumeRoleArn']
+                    print(f'destination_bucket_name : {destination_bucket_name}')
+                    print(f'destination_object_key : {destination_object_key}')
+                    print(f'destination_assume_role_arn : {destination_assume_role_arn}')
+
+                    s3_at = s3_assets.Asset(
+                        self,
+                        f'SC-Template-Assets-{source_path}',
+                        path=f'{os.path.dirname(assets_file)}/{source_path}',
+
+                    )
+
+                    s3_at.grant_read(products_launch_role)
     def export_ssm(self, key: str, param_name: str, value: str):
         param = ssm.StringParameter(self, key, parameter_name=param_name, string_value=value)
 
@@ -466,7 +520,7 @@ class ServiceCatalogStack(Stack):
             [str]: path of the CFN template
         """
         stage = aws_cdk.App()
-        stack = stack(stage, stack_name, synthesizer=aws_cdk.BootstraplessSynthesizer(), **kwargs)
+        stack = stack(stage, stack_name, synthesizer=aws_cdk.DefaultStackSynthesizer(), **kwargs)
         assembly = stage.synth()
         template_full_path = assembly.stacks[0].template_full_path
 
