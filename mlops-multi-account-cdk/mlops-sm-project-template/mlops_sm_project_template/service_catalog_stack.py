@@ -31,6 +31,7 @@ from aws_cdk import (
     Tags,
     aws_iam as iam,
     aws_s3_assets as s3_assets,
+    aws_ecr_assets as ecr_assets,
     aws_servicecatalog as servicecatalog,
     aws_ssm as ssm,
 )
@@ -45,15 +46,16 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logger = logging.getLogger()
 logger.setLevel(LOG_LEVEL)
 
+
 # Create a Portfolio and Product
 # see: https://docs.aws.amazon.com/cdk/api/latest/python/aws_cdk.aws_servicecatalog.html
 class ServiceCatalogStack(Stack):
     def __init__(
-        self,
-        scope: Construct,
-        construct_id: str,
-        config_set: dict,
-        **kwargs,
+            self,
+            scope: Construct,
+            construct_id: str,
+            config_set: dict,
+            **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -145,7 +147,8 @@ class ServiceCatalogStack(Stack):
                 actions=["iam:PassRole"],
                 effect=iam.Effect.ALLOW,
                 resources=[
-                    "*"  # TODO lock this policy to only certain roles from the other account that are used for deploying the solution as defined in templates/pipeline_constructs/deploy_pipeline_stack.py
+                    "*"
+                    # TODO lock this policy to only certain roles from the other account that are used for deploying the solution as defined in templates/pipeline_constructs/deploy_pipeline_stack.py
                 ],
             ),
         )
@@ -323,7 +326,7 @@ class ServiceCatalogStack(Stack):
                 output_type=BundlingOutput.ARCHIVED,
             ),
         )
-        
+
         batch_build_app_asset = s3_assets.Asset(
             self,
             "BatchBuildAsset",
@@ -338,7 +341,7 @@ class ServiceCatalogStack(Stack):
                 output_type=BundlingOutput.ARCHIVED,
             ),
         )
-        
+
         batch_deploy_app_asset = s3_assets.Asset(
             self,
             "BatchDeployAsset",
@@ -359,7 +362,6 @@ class ServiceCatalogStack(Stack):
         byoc_build_app_asset.grant_read(grantee=products_launch_role)
         batch_build_app_asset.grant_read(grantee=products_launch_role)
         batch_deploy_app_asset.grant_read(grantee=products_launch_role)
-
 
         # Output the deployment bucket and key, for input into pipeline stack
         self.export_ssm(
@@ -393,18 +395,17 @@ class ServiceCatalogStack(Stack):
             batch_deploy_app_asset.s3_object_key,
         )
 
-
     def deploy_all_products(
-        self,
-        portfolio_association: servicecatalog.CfnPortfolioPrincipalAssociation,
-        portfolio: servicecatalog.Portfolio,
-        products_launch_role: iam.Role,
-        portfolio_owner: str,
-        product_version: str,
-        stage_name: str,
-        config_set: dict,
-        templates_directory: str = "mlops_sm_project_template/templates",
-        **kwargs,
+            self,
+            portfolio_association: servicecatalog.CfnPortfolioPrincipalAssociation,
+            portfolio: servicecatalog.Portfolio,
+            products_launch_role: iam.Role,
+            portfolio_owner: str,
+            product_version: str,
+            stage_name: str,
+            config_set: dict,
+            templates_directory: str = "mlops_sm_project_template/templates",
+            **kwargs,
     ):
 
         # i = 0  # used as a counter for the products
@@ -441,7 +442,8 @@ class ServiceCatalogStack(Stack):
                     product_name=template_module.MLOpsStack.TEMPLATE_NAME,
                     product_versions=[
                         servicecatalog.CloudFormationProductVersion(
-                            cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(generated_template),
+                            cloud_formation_template=servicecatalog.CloudFormationTemplate.from_asset(
+                                generated_template),
                             product_version_name=product_version,
                         )
                     ],
@@ -471,31 +473,66 @@ class ServiceCatalogStack(Stack):
     def prepare_template_assets(self, template_file: str, unique_source_path: Set[str], products_launch_role) -> None:
 
         assets_file: str = template_file.replace('template.json', 'assets.json')
+        asset_basedir: str = os.path.dirname(assets_file)
 
-        with open(assets_file) as f:
+        with open(assets_file, "r") as f:
             assets_obj = json.load(f)
             files = assets_obj['files']
             docker_images = assets_obj['dockerImages']
 
-            for key, value in files.items():
-                source_path: str = value['source']['path']
-                source_packaging: str = value['source']['packaging']
-                output_type: BundlingOutput = BundlingOutput.ARCHIVED if source_packaging == 'zip' else BundlingOutput.NOT_ARCHIVED
-                if unique_source_path.__contains__(source_path):
-                    continue
-                unique_source_path.add(source_path)
+            self.prepare_template_files_assets(files, asset_basedir, unique_source_path, products_launch_role)
+            self.prepare_template_docker_images_assets(docker_images, asset_basedir, unique_source_path)
 
-                for k, v in value['destinations'].items():
-                    destination_bucket_name = v['bucketName']
-                    destination_object_key = v['objectKey']
-                    destination_assume_role_arn = v['assumeRoleArn']
-                    s3_at = s3_assets.Asset(
-                        self,
-                        f'SC-Template-Assets-{source_path}',
-                        path=f'{os.path.dirname(assets_file)}/{source_path}',
+    def prepare_template_docker_images_assets(self, docker_images, asset_basedir: str,
+                                              unique_source_path: Set[str]) -> None:
 
-                    )
-                    s3_at.grant_read(products_launch_role)
+        for key, value in docker_images.items():
+            source_dir: str = value['source']['directory']
+            if unique_source_path.__contains__(source_dir):
+                continue
+            unique_source_path.add(source_dir)
+
+            for dest_key, dest_val in value['destinations'].items():
+                repository_name: str = dest_val['repositoryName']
+                image_tag: str = dest_val['imageTag']
+                region: str = dest_val['region']
+                assume_role_arn: str = dest_val['assumeRoleArn']
+                logger.info(f'docker assets, repository_name : {repository_name}, '
+                            f'image_tag : {image_tag}, '
+                            f'region: {region}, '
+                            f'assume_role_arn : {assume_role_arn}')
+                ecr_at = ecr_assets.DockerImageAsset(
+                    self,
+                    f'SC-Template-DockerImages-{source_dir}',
+                    directory=os.path.join(asset_basedir, source_dir),
+                )
+
+    def prepare_template_files_assets(self, files, asset_basedir: str,
+                                      unique_source_path: Set[str], products_launch_role) -> None:
+        for key, value in files.items():
+            source_path: str = value['source']['path']
+            source_packaging: str = value['source']['packaging']
+            output_type: BundlingOutput = BundlingOutput.ARCHIVED if source_packaging == 'zip' else BundlingOutput.NOT_ARCHIVED
+            if unique_source_path.__contains__(source_path):
+                continue
+            unique_source_path.add(source_path)
+
+            for k, v in value['destinations'].items():
+                destination_bucket_name = v['bucketName']
+                destination_object_key = v['objectKey']
+                destination_assume_role_arn = v['assumeRoleArn']
+                logger.info(f'files assets, output_type : {output_type.value},'
+                            f' destination_bucket_name : {destination_bucket_name}, '
+                            f'destination_object_key : {destination_object_key}, '
+                            f'destination_assume_role_arn : {destination_assume_role_arn}')
+                s3_at = s3_assets.Asset(
+                    self,
+                    f'SC-Template-Files-Assets-{source_path}',
+                    path=os.path.join(asset_basedir, source_path),
+
+                )
+                s3_at.grant_read(products_launch_role)
+
     def export_ssm(self, key: str, param_name: str, value: str):
         param = ssm.StringParameter(self, key, parameter_name=param_name, string_value=value)
 
@@ -530,7 +567,7 @@ class ServiceCatalogStack(Stack):
             k
             for k in t["Resources"]
             if t["Resources"][k]["Type"] == "AWS::IAM::Policy"
-            and ("deployPreProdActionRolePolicy" in k or "deployProdActionRolePolicy" in k)
+               and ("deployPreProdActionRolePolicy" in k or "deployProdActionRolePolicy" in k)
         ]
 
         for p in policy_list:
