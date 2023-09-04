@@ -124,6 +124,7 @@ class MLOpsStack(Stack):
             bucket_name=f"mlops-{project_name}-{project_id}-{Aws.REGION}",
             encryption_key=kms_key,
             versioned=True,
+            auto_delete_objects=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
         )
 
@@ -290,6 +291,7 @@ class MLOpsStack(Stack):
             bucket_name=f"pipeline-{project_id}-{Aws.REGION}",
             encryption_key=kms_key,
             versioned=True,
+            auto_delete_objects=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
         )
 
