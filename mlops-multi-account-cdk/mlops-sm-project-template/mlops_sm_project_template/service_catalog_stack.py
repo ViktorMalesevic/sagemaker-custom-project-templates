@@ -469,9 +469,8 @@ class ServiceCatalogStack(Stack):
                 # i += 1
 
     def prepare_template_assets(self, template_file: str, unique_source_path: Set[str], products_launch_role) -> None:
-        print(f'template file : {template_file}')
+
         assets_file: str = template_file.replace('template.json', 'assets.json')
-        print(f'assets file : {assets_file}')
 
         with open(assets_file) as f:
             assets_obj = json.load(f)
@@ -479,13 +478,9 @@ class ServiceCatalogStack(Stack):
             docker_images = assets_obj['dockerImages']
 
             for key, value in files.items():
-                print(f'key : {key}')
-                print(f'value : {value}')
                 source_path: str = value['source']['path']
                 source_packaging: str = value['source']['packaging']
                 output_type: BundlingOutput = BundlingOutput.ARCHIVED if source_packaging == 'zip' else BundlingOutput.NOT_ARCHIVED
-                print(f'source_path : {source_path}')
-                print(f'source_packaging : {source_packaging}')
                 if unique_source_path.__contains__(source_path):
                     continue
                 unique_source_path.add(source_path)
@@ -494,17 +489,12 @@ class ServiceCatalogStack(Stack):
                     destination_bucket_name = v['bucketName']
                     destination_object_key = v['objectKey']
                     destination_assume_role_arn = v['assumeRoleArn']
-                    print(f'destination_bucket_name : {destination_bucket_name}')
-                    print(f'destination_object_key : {destination_object_key}')
-                    print(f'destination_assume_role_arn : {destination_assume_role_arn}')
-
                     s3_at = s3_assets.Asset(
                         self,
                         f'SC-Template-Assets-{source_path}',
                         path=f'{os.path.dirname(assets_file)}/{source_path}',
 
                     )
-
                     s3_at.grant_read(products_launch_role)
     def export_ssm(self, key: str, param_name: str, value: str):
         param = ssm.StringParameter(self, key, parameter_name=param_name, string_value=value)
