@@ -15,26 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-# !/usr/bin/env python3
+import boto3
 import os
 
-import aws_cdk as cdk
+ssm_client = boto3.client("ssm")
 
-# For consistency with TypeScript code, `cdk` is the preferred import name for
-# the CDK's core module.  The following line also imports it as `core` for use
-# with examples from the CDK Developer's Guide, which are in the process of
-# being updated to use `cdk`.  You may delete this import if you don't need it.
+PROJECT_NAME = os.getenv("PROJECT_NAME", "")
+PROJECT_ID = os.getenv("PROJECT_ID", "")
+MODEL_PACKAGE_GROUP_NAME = os.getenv("MODEL_PACKAGE_GROUP_NAME", "")
+MODEL_BUCKET_ARN = os.getenv("MODEL_BUCKET_ARN", "arn:aws:s3:::*mlops*")
+ECR_REPO_ARN = os.getenv("ECR_REPO_ARN", None)
 
-from cdk_pipelines.cdk_pipelines import CdkPipelineStack
+DEV_ACCOUNT = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/dev/account_id")["Parameter"]["Value"]
+DEFAULT_DEPLOYMENT_REGION = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/dev/region")["Parameter"]["Value"]
 
-app = cdk.App()
-CdkPipelineStack(app, "mlops-sm-project-template-deploy-pipeline",
-                 description="CI/CD CDK Pipelines for Sagemaker Projects Service Catalog",
-                 env=cdk.Environment(
-                     account=os.environ["CDK_DEFAULT_ACCOUNT"],
-                     region=os.environ["CDK_DEFAULT_REGION"]
-                 )
-                 )
+PREPROD_ACCOUNT = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/preprod/account_id")["Parameter"]["Value"]
+PREPROD_REGION = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/preprod/region")["Parameter"]["Value"]
 
-app.synth()
+PROD_ACCOUNT = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/prod/account_id")["Parameter"]["Value"]
+PROD_REGION = ssm_client.get_parameter(Name=f"/mlops/{PROJECT_NAME}/prod/region")["Parameter"]["Value"]

@@ -15,26 +15,25 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-# !/usr/bin/env python3
-import os
-
+from deploy_endpoint.deploy_endpoint_stack import DeployEndpointStack
+from config.constants import (
+    DEFAULT_DEPLOYMENT_REGION,
+    DEV_ACCOUNT,
+    PREPROD_ACCOUNT,
+    PREPROD_REGION,
+    PROD_ACCOUNT,
+    PROD_REGION,
+)
 import aws_cdk as cdk
 
-# For consistency with TypeScript code, `cdk` is the preferred import name for
-# the CDK's core module.  The following line also imports it as `core` for use
-# with examples from the CDK Developer's Guide, which are in the process of
-# being updated to use `cdk`.  You may delete this import if you don't need it.
-
-from cdk_pipelines.cdk_pipelines import CdkPipelineStack
-
 app = cdk.App()
-CdkPipelineStack(app, "mlops-sm-project-template-deploy-pipeline",
-                 description="CI/CD CDK Pipelines for Sagemaker Projects Service Catalog",
-                 env=cdk.Environment(
-                     account=os.environ["CDK_DEFAULT_ACCOUNT"],
-                     region=os.environ["CDK_DEFAULT_REGION"]
-                 )
-                 )
+
+dev_env = cdk.Environment(account=DEV_ACCOUNT, region=DEFAULT_DEPLOYMENT_REGION)
+preprod_env = cdk.Environment(account=PREPROD_ACCOUNT, region=PREPROD_REGION)
+prod_env = cdk.Environment(account=PROD_ACCOUNT, region=PROD_REGION)
+
+DeployEndpointStack(app, "dev", env=dev_env)
+DeployEndpointStack(app, "preprod", env=preprod_env)
+DeployEndpointStack(app, "prod", env=prod_env)
 
 app.synth()

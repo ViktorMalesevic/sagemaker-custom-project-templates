@@ -15,26 +15,27 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-# !/usr/bin/env python3
+import json
+import boto3
+import time
 import os
+import model_card
 
-import aws_cdk as cdk
 
-# For consistency with TypeScript code, `cdk` is the preferred import name for
-# the CDK's core module.  The following line also imports it as `core` for use
-# with examples from the CDK Developer's Guide, which are in the process of
-# being updated to use `cdk`.  You may delete this import if you don't need it.
-
-from cdk_pipelines.cdk_pipelines import CdkPipelineStack
-
-app = cdk.App()
-CdkPipelineStack(app, "mlops-sm-project-template-deploy-pipeline",
-                 description="CI/CD CDK Pipelines for Sagemaker Projects Service Catalog",
-                 env=cdk.Environment(
-                     account=os.environ["CDK_DEFAULT_ACCOUNT"],
-                     region=os.environ["CDK_DEFAULT_REGION"]
-                 )
-                 )
-
-app.synth()
+def lambda_handler(event, context):
+    sm_client = boto3.client('sagemaker')
+    print(event)
+    with open(os.getcwd() + '/model_card_template.txt') as f:
+        file = f.read()
+    file = json.loads(file.replace("'", '"'))
+    role_arn = os.environ['role']
+    model_arn = sm_client.create_model(PrimaryContainer={
+        'ModelPackageName': event['detail']['ModelPackageArn']},
+        ExecutionRoleArn=role_arn,
+        ModelName='-'.join(event['detail']['ModelPackageName'].split('/')))
+    model_arn = model_arn['ModelArn']
+    model_card._create_model_card(file, event, model_arn)
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Created Model Object and Card!')
+    }

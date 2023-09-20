@@ -15,26 +15,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import aws_cdk as core
+import aws_cdk.assertions as assertions
 
-# !/usr/bin/env python3
-import os
+from deploy_endpoint.deploy_endpoint_stack import DeployEndpointStack
 
-import aws_cdk as cdk
+# example tests. To run these tests, uncomment this file along with the example
+# resource in deploy_app/deploy_app_stack.py
+def test_sqs_queue_created():
+    app = core.App()
+    stack = DeployEndpointStack(app, "deploy-app")
+    template = assertions.Template.from_stack(stack)
 
-# For consistency with TypeScript code, `cdk` is the preferred import name for
-# the CDK's core module.  The following line also imports it as `core` for use
-# with examples from the CDK Developer's Guide, which are in the process of
-# being updated to use `cdk`.  You may delete this import if you don't need it.
 
-from cdk_pipelines.cdk_pipelines import CdkPipelineStack
-
-app = cdk.App()
-CdkPipelineStack(app, "mlops-sm-project-template-deploy-pipeline",
-                 description="CI/CD CDK Pipelines for Sagemaker Projects Service Catalog",
-                 env=cdk.Environment(
-                     account=os.environ["CDK_DEFAULT_ACCOUNT"],
-                     region=os.environ["CDK_DEFAULT_REGION"]
-                 )
-                 )
-
-app.synth()
+#     template.has_resource_properties("AWS::SQS::Queue", {
+#         "VisibilityTimeout": 300
+#     })
