@@ -41,6 +41,7 @@ class DeployPipelineConstruct(Construct):
             pipeline_artifact_bucket: s3.Bucket,
             model_package_group_name: str,
             repository: codecommit.Repository,
+            s3_artifact: s3.IBucket,
             preprod_account: str,
             prod_account: str,
             deployment_region: str,
@@ -107,6 +108,25 @@ class DeployPipelineConstruct(Construct):
                     f"arn:aws:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/mlops/*",  # TODO: Add conditions
                 ],
             ),
+        )
+
+        cdk_synth_build_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "s3:AbortMultipartUpload",
+                    "s3:DeleteObject",
+                    "s3:GetBucket*",
+                    "s3:GetObject*",
+                    "s3:List*",
+                    "s3:PutObject*",
+                    "s3:Create*",
+                ],
+                resources=[
+                    s3_artifact.bucket_arn,
+                    f"{s3_artifact.bucket_arn}/*",
+                    "arn:aws:s3:::sagemaker-*",
+                ],
+            )
         )
 
         environment_variables = dict()

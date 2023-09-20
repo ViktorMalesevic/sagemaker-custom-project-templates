@@ -578,6 +578,7 @@ class MLOpsStack(sc.ProductStack):
             pipeline_artifact_bucket=pipeline_artifact_bucket,
             model_package_group_name=model_package_group_name,
             repository=deploy_app_repository,
+            s3_artifact=s3_artifact,
             preprod_account=preprod_account,
             prod_account=prod_account,
             model_bucket_arn=s3_artifact.bucket_arn,
