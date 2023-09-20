@@ -5,7 +5,7 @@ phases:
     runtime-versions:
       python: 3.11
     commands:
-      - pip install --upgrade --force-reinstall . "awscli>1.20.30"
+      - pip install --upgrade --force-reinstall "awscli>1.20.30"
 
   build:
     commands:
