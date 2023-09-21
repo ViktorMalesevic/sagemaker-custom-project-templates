@@ -15,26 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import json
-import boto3
-import time
-import os
-import model_card
+CODE_COMMIT_REPO_NAME = "mlops-sm-project-template"
+PIPELINE_BRANCH = "main"
 
-def lambda_handler(event, context):
-    sm_client=boto3.client('sagemaker')
-    print(event)
-    with open(os.getcwd()+'/model_card_template.txt') as f:
-        file=f.read()
-    file=json.loads(file.replace("'",'"'))
-    role_arn=os.environ['role']
-    model_arn=sm_client.create_model(PrimaryContainer={
-                    'ModelPackageName': event['detail']['ModelPackageArn']},
-                   ExecutionRoleArn=role_arn,
-                   ModelName='-'.join(event['detail']['ModelPackageName'].split('/')))
-    model_arn=model_arn['ModelArn']
-    model_card._create_model_card(file,event, model_arn)
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Created Model Object and Card!')
-    }
+PIPELINE_ACCOUNT = ""  # account used to host the pipeline handling updates of this repository
+
+DEFAULT_DEPLOYMENT_REGION = "eu-west-1"
+APP_PREFIX = "mlops-cdk"

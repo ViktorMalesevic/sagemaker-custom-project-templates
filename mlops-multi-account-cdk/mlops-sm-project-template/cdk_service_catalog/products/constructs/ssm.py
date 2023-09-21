@@ -24,7 +24,7 @@ from constructs import Construct
 
 
 class SSMConstruct(Construct):
-    def __init__(self, scope: Construct, construct_id: str, project_name: str, preprod_account: int, prod_account: int,
+    def __init__(self, scope: Construct, construct_id: str, project_name: str, preprod_account: str, prod_account: str,
                  deployment_region: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 

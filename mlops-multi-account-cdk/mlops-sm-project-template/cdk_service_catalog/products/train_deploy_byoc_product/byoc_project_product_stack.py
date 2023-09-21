@@ -28,10 +28,8 @@ from aws_cdk import (
     aws_sagemaker as sagemaker,
     aws_servicecatalog as sc,
     aws_codecommit as codecommit,
-    aws_lambda as _lambda,
 )
-from aws_cdk import aws_events as events
-from aws_cdk import aws_events_targets as targets
+
 from constructs import Construct
 
 from cdk_service_catalog.products.constructs.build_pipeline import BuildPipelineConstruct
@@ -105,16 +103,6 @@ class MLOpsStack(sc.ProductStack):
             description="Service generated Id of the project.",
         ).value_as_string
 
-        # TODO: derive account number from model package ARN
-        source_account = aws_cdk.CfnParameter(
-            self,
-            "SourceDevAccount",
-            type="String",
-            min_length=11,
-            max_length=13,
-            description="Id of source - dev account.",
-        ).value_as_string
-
         preprod_account = aws_cdk.CfnParameter(
             self,
             "PreProdAccount",
@@ -144,8 +132,6 @@ class MLOpsStack(sc.ProductStack):
 
         Tags.of(self).add("sagemaker:project-id", project_id)
         Tags.of(self).add("sagemaker:project-name", project_name)
-
-        source_artifact_buket = asset_bucket
 
         SSMConstruct(
             self,
@@ -390,172 +376,6 @@ class MLOpsStack(sc.ProductStack):
             versioned=True,
             auto_delete_objects=True,
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,
-        )
-
-        # Create the Lambda function
-        copy_model_function = _lambda.Function(
-            self,
-            "CopyModelFunction",
-            code=_lambda.Code.from_asset(f"{BASE_DIR}/copy_model_registry"),
-            environment={
-                "artefact_bucket": s3_artifact.bucket_name,
-                "target_model_package_group": model_package_group_name,  # model_package_group,  # TODO: Test if working
-                "prefix": model_package_group_name,
-            },
-            handler="index.lambda_handler",
-            runtime=_lambda.Runtime.PYTHON_3_8,
-            timeout=aws_cdk.Duration.seconds(360),
-            initial_policy=[
-                iam.PolicyStatement(
-                    actions=[
-                        "sagemaker:DescribeModelPackage",
-                        "sagemaker:DescribeModelPackageGroup",
-                        "sagemaker:ListModelPackages",
-                    ],
-                    effect=iam.Effect.ALLOW,
-                    resources=[
-                        f"arn:aws:sagemaker:{Aws.REGION}:{source_account}:model-package-group/{model_package_group_name}",
-                        f"arn:aws:sagemaker:{Aws.REGION}:{source_account}:model-package/{model_package_group_name}/*",
-                        f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package-group/{model_package_group_name}",
-                        f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package/{model_package_group_name}/*",
-                    ],
-                ),
-                iam.PolicyStatement(
-                    effect=iam.Effect.ALLOW,
-                    actions=[
-                        "sagemaker:CreateModelPackageGroup",
-                        "sagemaker:CreateModelPackage",
-                    ],
-                    resources=[
-                        f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package-group/{model_package_group_name}",
-                        f"arn:aws:sagemaker:{Aws.REGION}:{Aws.ACCOUNT_ID}:model-package/{model_package_group_name}/*",
-                    ],
-                ),
-                iam.PolicyStatement(
-                    actions=[
-                        "kms:Decrypt",
-                        "kms:Encrypt",
-                    ],
-                    effect=iam.Effect.ALLOW,
-                    resources=[
-                        "*"  # We are permissive for now because we do not know in advance the kms key from the Dev
-                        # account
-                    ],
-                )
-            ],
-        )
-        # For KMS, we will need to re-encrypt in the KMS key of the central model registry/central model s3 (the one
-        # that this SC product creates)
-        source_artifact_buket.grant_read(copy_model_function)
-        s3_artifact.grant_read_write(copy_model_function)
-
-        # Create the EventBridge rule
-        # PRE-REQUISITES: Source account should already be writing
-        # to target account event bus
-        # For setup, see: https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-cross-account.html
-        event_pattern = {
-            "source": ["aws.sagemaker"],
-            "detail_type": ["SageMaker Model Package State Change"],
-            "detail": {
-                "ModelPackageGroupName": [model_package_group_name],
-                "ModelApprovalStatus": ["Approved"],
-            },
-        }
-
-        copy_target = targets.LambdaFunction(
-            handler=copy_model_function,
-            # dead_letter_queue_enabled=True,
-            retry_attempts=2,
-        )
-
-        copy_rule = events.Rule(  # noqa: F841
-            self,
-            "CopyEventBridgeRule",
-            description="Trigger Copy Lambda function when source SageMaker Model Package Group version state changes",
-            enabled=True,
-            event_pattern=event_pattern,
-            targets=[copy_target],
-        )
-
-        # Create SageMaker Model Cards lambda
-        # Create the IAM role for Lambda function
-        model_card_role = iam.Role(
-            self,
-            "ModelCardRole",
-            assumed_by=iam.CompositePrincipal(
-                iam.ServicePrincipal("sagemaker.amazonaws.com"),
-                iam.ServicePrincipal("lambda.amazonaws.com"),
-            ),
-            description="Allows Lambda function to access S3 and SageMaker resources",
-            managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "service-role/AWSLambdaBasicExecutionRole"
-                ),
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "AmazonSageMakerFullAccess"
-                ),
-            ],
-        )
-
-        # Add s3 permissions to role
-        model_card_role.add_to_policy(
-            iam.PolicyStatement(
-                effect=iam.Effect.ALLOW,
-                actions=[
-                    "s3:PutObject",
-                    "s3:GetObject",
-                    "s3:GetObjectVersion",
-                    "s3:ListBucket",
-                ],
-                resources=[
-                    s3_artifact.arn_for_objects(key_pattern="*"),
-                    s3_artifact.bucket_arn,
-                ],
-            )
-        )
-
-        # Create the Lambda function
-        model_card_function = _lambda.Function(
-            self,
-            "ModelCardFunction",
-            code=_lambda.Code.from_asset(f"{BASE_DIR}/create_model_card"),
-            environment={
-                "role": model_card_role.role_arn,
-            },
-            handler="index.lambda_handler",
-            role=model_card_role,
-            runtime=_lambda.Runtime.PYTHON_3_8,
-            timeout=aws_cdk.Duration.seconds(360),
-        )
-
-        # Create the EventBridge rule pattern to listen to Model Package Group
-        event_pattern = {
-            "source": ["aws.sagemaker"],
-            "detail_type": ["SageMaker Model Package State Change"],
-            "detail": {
-                "ModelPackageGroupName": [model_package_group.model_package_group_name],
-                "ModelApprovalStatus": ["Approved"],
-            },
-        }
-
-        # Create Rule Target to Lambda
-        model_card_target = targets.LambdaFunction(
-            handler=model_card_function,
-            # dead_letter_queue_enabled=True,
-            retry_attempts=2,
-        )
-
-        # Create Event Rule and add Target
-        model_card_rule = events.Rule(  # noqa: F841
-            self,
-            "ModelCardLambdaRule",
-            description=(
-                "Trigger Model Card Lambda function when target SageMaker "
-                "Model Package Group version state changes"
-            ),
-            enabled=True,
-            event_pattern=event_pattern,
-            targets=[model_card_target],
         )
 
         BuildPipelineConstruct(

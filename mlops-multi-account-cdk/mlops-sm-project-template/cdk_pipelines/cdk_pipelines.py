@@ -15,12 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-import os
-
 import aws_cdk
 import aws_cdk as cdk
 from aws_cdk import (
+
     Stack,
     Stage,
     Tags,
@@ -30,9 +28,15 @@ from aws_cdk import (
     aws_iam as iam,
     aws_kms as kms,
 )
+
 from constructs import Construct
-from cdk_service_catalog.products.constructs.zip_utils import create_zip
+
 from cdk_service_catalog.sm_service_catalog import SageMakerServiceCatalog
+from cdk_utilities.cdk_app_config import (
+    DeploymentStage,
+    PipelineConfig
+)
+from cdk_pipelines.cdk_pipeline_codecommit_repo import CdkPipelineCodeCommitStack
 
 
 class SageMakerServiceCatalogStage(Stage):
@@ -50,37 +54,39 @@ class SageMakerServiceCatalogStage(Stage):
 
 
 class CdkPipelineStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, set_name: str,
+                 app_prefix: str, deploy_conf: DeploymentStage,
+                 pipeline_conf: PipelineConfig, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        hub_account = self.node.try_get_context("hub_account")
-        hub_region = self.node.try_get_context("hub_region")
+        dev_account: str = str(deploy_conf.account)
+        dev_region: str = deploy_conf.region
 
-        base_dir: str = os.path.abspath(f'{os.path.dirname(__file__)}{os.path.sep}..')
-        repo_branch_name: str = "main"
-        repo = codecommit.Repository(
-            self,
-            "mlops-sm-project-template-repo",
-            repository_name="mlops-sm-project-template-repo",
-            description="CDK Code with Sagemaker Projects Service Catalog products",
-            code=codecommit.Code.from_zip_file(file_path=create_zip(base_dir), branch=repo_branch_name)
+        # repo: codecommit.Repository = CdkPipelineCodeCommitStack.get_repo(scope, pipeline_conf)
+        repo: codecommit.IRepository = codecommit.Repository.from_repository_name(
+            self, "ProjectTemplateRepo", repository_name=pipeline_conf.code_commit.repo_name
         )
 
-        artifact_bucket = self.create_pipeline_artifact_bucket(hub_account=hub_account)
+        artifact_bucket = self.create_pipeline_artifact_bucket(
+            dev_account=dev_account,
+            app_prefix=app_prefix,
+            set_name=set_name,
+            pipeline_region=pipeline_conf.region
+        )
 
         pipeline = pipelines.CodePipeline(
             self,
             "Pipeline",
-            pipeline_name="mlops-sm-project-template-pipeline",
+            pipeline_name=f"{app_prefix}-service-catalog-{pipeline_conf.code_commit.branch_name}-{set_name}",
             synth=pipelines.ShellStep(
                 "Synth",
-                input=pipelines.CodePipelineSource.code_commit(repo, repo_branch_name),
+                input=pipelines.CodePipelineSource.code_commit(repo, pipeline_conf.code_commit.branch_name),
                 install_commands=[
                     "npm install -g aws-cdk",
                     "pip install -r requirements.txt",
                 ],
                 commands=[
-                    f"cdk synth --context hub_account={hub_account} --context hub_region={hub_region}",
+                    f"cdk synth --context dev_account={dev_account} --context dev_region={dev_region}",
                 ],
             ),
             cross_account_keys=True,
@@ -93,8 +99,8 @@ class CdkPipelineStack(Stack):
                 self,
                 "mlops-sm-project",
                 env={
-                    "account": hub_account,
-                    "region": hub_region,
+                    "account": dev_account,
+                    "region": dev_region,
                 },
             )
         )
@@ -102,7 +108,8 @@ class CdkPipelineStack(Stack):
         # General tags applied to all resources created on this scope (self)
         Tags.of(self).add("key", "value")
 
-    def create_pipeline_artifact_bucket(self, hub_account: str) -> s3.Bucket:
+    def create_pipeline_artifact_bucket(self, dev_account: str,
+                                        app_prefix: str, set_name: str, pipeline_region: str) -> s3.Bucket:
         # create kms key to be used by the assets bucket
         kms_key = kms.Key(
             self,
@@ -135,7 +142,7 @@ class CdkPipelineStack(Stack):
                     "*",
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{hub_account}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{dev_account}:root"),
                 ],
             )
         )
@@ -143,7 +150,7 @@ class CdkPipelineStack(Stack):
         s3_artifact = s3.Bucket(
             self,
             "MLOpsSmTemplatePipelineArtifactBucket",
-            bucket_name=f"mlops-sm-template-pipeline-artifact-bucket",  # Bucket name has a limit of 63 characters
+            bucket_name=f"{app_prefix}-sm-template-pipeline-bucket-{set_name}-{pipeline_region}",
             encryption_key=kms_key,
             versioned=True,
             auto_delete_objects=True,
@@ -190,7 +197,7 @@ class CdkPipelineStack(Stack):
                     s3_artifact.bucket_arn,
                 ],
                 principals=[
-                    iam.ArnPrincipal(f"arn:aws:iam::{hub_account}:root"),
+                    iam.ArnPrincipal(f"arn:aws:iam::{dev_account}:root"),
                 ],
             )
         )

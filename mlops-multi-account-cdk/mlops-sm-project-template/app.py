@@ -17,24 +17,65 @@
 
 
 # !/usr/bin/env python3
-import os
 
+import logging
+from logging import Logger
 import aws_cdk as cdk
 
-# For consistency with TypeScript code, `cdk` is the preferred import name for
-# the CDK's core module.  The following line also imports it as `core` for use
-# with examples from the CDK Developer's Guide, which are in the process of
-# being updated to use `cdk`.  You may delete this import if you don't need it.
-
+from cdk_pipelines.cdk_pipeline_codecommit_repo import CdkPipelineCodeCommitStack
+from cdk_utilities.config_helper import ConfigHelper
+from cdk_utilities.cdk_app_config import CdkAppConfig, DeploymentStage
 from cdk_pipelines.cdk_pipelines import CdkPipelineStack
+import sys
 
-app = cdk.App()
-CdkPipelineStack(app, "mlops-sm-project-template-deploy-pipeline",
-                 description="CI/CD CDK Pipelines for Sagemaker Projects Service Catalog",
-                 env=cdk.Environment(
-                     account=os.environ["CDK_DEFAULT_ACCOUNT"],
-                     region=os.environ["CDK_DEFAULT_REGION"]
-                 )
-                 )
 
-app.synth()
+class MLOpsCdkApp:
+    logging.basicConfig(level=logging.INFO)
+
+    def __init__(self):
+        self.logger: Logger = logging.getLogger(self.__class__.__name__)
+
+    def main(self):
+
+        self.logger.info('Starting cdk app...')
+
+        app = cdk.App()
+        cac: CdkAppConfig = ConfigHelper.get_config()
+
+        CdkPipelineCodeCommitStack.get_repo(app, cac.pipeline)
+
+        for dc in cac.deployments:
+
+            dev_conf: DeploymentStage = dc.get_deployment_stage_by_name('Dev')
+
+            self.logger.info(f'Start deploying config '
+                             f'set name : {dc.set_name}, '
+                             f'dev_account: {dev_conf.account}, '
+                             f'deployment_region : {dev_conf.region}')
+
+            if not dc.enabled or not dev_conf.enabled:
+                self.logger.info(f'Skipping deployment of config ->'
+                                 f'set name : {dc.set_name}, '
+                                 f'dev_account: {dev_conf.account}, '
+                                 f'deployment_region : {dev_conf.region} '
+                                 f'enabled : {str(dev_conf.enabled)}'
+                                 f' as it is disabled in configuration file. To enable it, set the attribute '
+                                 f'enabled=True at deployments level in yaml configuration file ')
+                continue
+
+            CdkPipelineStack(
+                app,
+                f"ml-sc-deploy-pipeline-{dc.set_name}",
+                app_prefix=cac.app_prefix,
+                set_name=dc.set_name,
+                deploy_conf=dev_conf,
+                pipeline_conf=cac.pipeline,
+                description="CI/CD CDK Pipelines for Sagemaker Projects Service Catalog",
+                env=cdk.Environment(account=str(cac.pipeline.account), region=cac.pipeline.region)
+            )
+
+        app.synth()
+
+
+if __name__ == "__main__":
+    MLOpsCdkApp().main()
