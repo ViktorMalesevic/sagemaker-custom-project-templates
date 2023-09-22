@@ -28,7 +28,6 @@ from aws_cdk import (
     aws_iam as iam,
     aws_kms as kms,
 )
-
 from constructs import Construct
 
 from cdk_service_catalog.sm_service_catalog import SageMakerServiceCatalog
@@ -36,7 +35,6 @@ from cdk_utilities.cdk_app_config import (
     DeploymentStage,
     PipelineConfig
 )
-from cdk_pipelines.cdk_pipeline_codecommit_repo import CdkPipelineCodeCommitStack
 
 
 class SageMakerServiceCatalogStage(Stage):
@@ -106,7 +104,7 @@ class CdkPipelineStack(Stack):
         )
 
         # General tags applied to all resources created on this scope (self)
-        Tags.of(self).add("key", "value")
+        Tags.of(self).add("cdk-app", f"{app_prefix}-sm-template")
 
     def create_pipeline_artifact_bucket(self, dev_account: str,
                                         app_prefix: str, set_name: str, pipeline_region: str) -> s3.Bucket:
