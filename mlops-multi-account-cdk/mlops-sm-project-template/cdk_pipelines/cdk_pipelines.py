@@ -150,7 +150,7 @@ class CdkPipelineStack(Stack):
         s3_artifact = s3.Bucket(
             self,
             "MLOpsSmTemplatePipelineArtifactBucket",
-            bucket_name=f"{app_prefix}-sm-template-pipeline-bucket-{set_name}-{pipeline_region}",
+            bucket_name=f"{app_prefix}-sm-template-pipeline-bucket-{set_name}",
             encryption_key=kms_key,
             versioned=True,
             auto_delete_objects=True,

@@ -15,12 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from typing import List
+import json
+import os
 from dataclasses import dataclass, field
+from typing import List
+
 from dataclasses_json import DataClassJsonMixin, config
 from yamldataclassconfig.config import YamlDataClassConfig
-import os
-import json
 
 
 @dataclass
@@ -45,7 +46,7 @@ class DeploymentConfig(DataClassJsonMixin):
                 stage_name=ds.stage_name,
                 account=ds.account,
                 enabled=ds.enabled,
-                region=self.default_region if ds.region is None or ds.region == '' else ds.region
+                region=self.default_region if ds.region is None or ds.region.strip() == '' else ds.region.strip()
             ))
         return st
 
@@ -80,11 +81,14 @@ class AppConfig(YamlDataClassConfig):
 
 @dataclass
 class DeploymentConfigOld(DataClassJsonMixin):
-    set_name: str = field(metadata=config(field_name="SET_NAME"))
     dev_account: int = field(metadata=config(field_name="DEV_ACCOUNT"))
-    preprod_account: int = field(metadata=config(field_name="PREPROD_ACCOUNT"))
-    prod_account: int = field(metadata=config(field_name="PROD_ACCOUNT"))
-    deployment_region: str = field(metadata=config(field_name="DEPLOYMENT_REGION"))
+    set_name: str = field(default=f'', metadata=config(field_name="SET_NAME"))
+    preprod_account: int = field(default=-1, metadata=config(field_name="PREPROD_ACCOUNT"))
+    prod_account: int = field(default=-1, metadata=config(field_name="PROD_ACCOUNT"))
+    deployment_region: str = field(
+        default=os.getenv('CDK_DEFAULT_REGION'),
+        metadata=config(field_name="DEPLOYMENT_REGION")
+    )
 
 
 class AppConfigOld:
@@ -121,7 +125,8 @@ class AppConfigOld:
         for old_dc in self.cdk_app_config_old:
             stages: List[DeploymentStage] = list()
             dc: DeploymentConfig = DeploymentConfig(
-                set_name=old_dc.set_name,
+                set_name=f'devconf-{old_dc.dev_account}'
+                if old_dc.set_name is None or old_dc.set_name.strip() == '' else old_dc.set_name,
                 enabled=True, default_region=old_dc.deployment_region,
                 stages=stages
             )
