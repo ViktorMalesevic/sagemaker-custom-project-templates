@@ -24,7 +24,7 @@ from aws_cdk import (
 )
 
 from constructs import Construct
-from cdk_service_catalog.products.constructs.zip_utils import create_zip
+from cdk_utilities.zip_utils import ZipUtility
 from cdk_utilities.cdk_app_config import (
     PipelineConfig,
     CodeCommitConfig
@@ -44,7 +44,7 @@ class CdkPipelineCodeCommitStack(Stack):
             "BuildAppCodeRepo",
             repository_name=conf.repo_name,
             description="CDK Code with Sagemaker Projects Service Catalog products",
-            code=codecommit.Code.from_zip_file(file_path=create_zip(base_dir), branch=conf.branch_name)
+            code=codecommit.Code.from_zip_file(file_path=ZipUtility.create_zip(base_dir), branch=conf.branch_name)
         )
 
     @classmethod

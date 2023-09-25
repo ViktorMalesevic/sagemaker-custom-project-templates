@@ -39,7 +39,7 @@ from cdk_utilities.cdk_app_config import (
 
 class SageMakerServiceCatalogStage(Stage):
     def __init__(
-            self, scope: Construct, construct_id: str,
+            self, scope: Construct, construct_id: str, app_prefix: str,
             **kwargs
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -47,6 +47,7 @@ class SageMakerServiceCatalogStage(Stage):
         service = SageMakerServiceCatalog(
             self,
             "template",
+            app_prefix=app_prefix,
             **kwargs,
         )
 
@@ -96,6 +97,7 @@ class CdkPipelineStack(Stack):
             SageMakerServiceCatalogStage(
                 self,
                 "mlops-sm-project",
+                app_prefix=f'{app_prefix}-{set_name}',
                 env={
                     "account": dev_account,
                     "region": dev_region,

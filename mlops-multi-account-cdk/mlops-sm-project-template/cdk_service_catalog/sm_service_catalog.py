@@ -16,28 +16,34 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-import os
-from importlib import import_module
-from pathlib import Path
-
+from typing import List, Any
+import logging
+from logging import Logger
 import aws_cdk
 import aws_cdk as cdk
+from aws_cdk import CfnParameter
 from aws_cdk import Stack, Tags
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_s3 as s3
-from aws_cdk import CfnParameter
 from aws_cdk import aws_servicecatalog as servicecatalog
 from constructs import Construct
 
+from cdk_service_catalog.products.constructs.base_product_stack import MLOpsBaseProductStack
+from cdk_utilities.class_utilities import ClassUtilities
+
 
 class SageMakerServiceCatalog(Stack):
+    logging.basicConfig(level=logging.INFO)
+
     def __init__(
             self,
             scope: Construct,
             construct_id: str,
+            app_prefix: str,
             **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+        self.logger: Logger = logging.getLogger(self.__class__.__name__)
 
         execution_role_arn = CfnParameter(
             self,
@@ -47,15 +53,6 @@ class SageMakerServiceCatalog(Stack):
             min_length=1,
             default="/mlops/role/lead",
         ).value_as_string
-
-        # sc_product_artifact_bucket = s3.Bucket(
-        #     self,
-        #     "SCProductArtifactBucket",
-        #     # encryption_key=kms_key,
-        #     # versioned=True,
-        #     removal_policy=cdk.RemovalPolicy.DESTROY,
-        #     bucket_name=f"sc-artifact-bucket-{os.environ['CDK_DEFAULT_ACCOUNT']}-{os.environ['CDK_DEFAULT_REGION']}",
-        # )
 
         default_file_assets_bucket_name: str = (f'cdk-{aws_cdk.DefaultStackSynthesizer.DEFAULT_QUALIFIER}'
                                                 f'-assets-{aws_cdk.Aws.ACCOUNT_ID}-{aws_cdk.Aws.REGION}')
@@ -75,9 +72,6 @@ class SageMakerServiceCatalog(Stack):
             description="Products for SM Projects",
         )
 
-        # launch_role = iam.Role.from_role_name(
-        #     self, "LaunchRole", "AmazonSageMakerServiceCatalogProductsLaunchRole"
-        # )
         execute_role = iam.Role.from_role_arn(self,
                                               'PortfolioExecutionRoleArn',
                                               execution_role_arn,
@@ -91,27 +85,33 @@ class SageMakerServiceCatalog(Stack):
             portfolio=portfolio,
             launch_role=launch_role,
             sc_product_artifact_bucket=sc_product_artifact_bucket,
+            app_prefix=app_prefix,
         )
 
     def add_all_products(
             self,
             portfolio: servicecatalog.Portfolio,
             launch_role: iam.Role,
-            templates_directory: str = "cdk_service_catalog/products",
-            **kwargs,
+            base_package: str = 'cdk_service_catalog.products',
+            exclude_packages: List[str] = ('constructs', 'seed_code'),
+            **kwargs
     ):
-        templates_path = Path(templates_directory)
-        [
+        product_classes: List[Any] = ClassUtilities.find_subclasses(
+            base_class=MLOpsBaseProductStack,
+            base_package=base_package,
+            exclude_packages=exclude_packages
+        )
+
+        for product_class in product_classes:
+            self.logger.info(f'product_class : {product_class.__name__}')
             SageMakerServiceCatalogProduct(
                 self,
-                file.stem.replace("_product_stack", ""),
+                product_class.__name__,
                 portfolio=portfolio,
-                template_py_file=file,
+                product_class=product_class,
                 launch_role=launch_role,
                 **kwargs,
             )
-            for file in templates_path.glob("**/*_product_stack.py")
-        ]
 
     def create_launch_role(self) -> iam.Role:
         # Create the launch role
@@ -232,66 +232,35 @@ class SageMakerServiceCatalogProduct(cdk.NestedStack):
             scope: Construct,
             construct_id: str,
             portfolio: servicecatalog.Portfolio,
-            template_py_file: Path,
+            product_class: Any,
             launch_role: iam.Role,
             sc_product_artifact_bucket: s3.Bucket,
+            app_prefix: str,
             **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        module_name: str = template_py_file.stem
-        short_name = module_name.replace("_product_stack", "")
-        module_path: str = (
-            (template_py_file.parent / module_name).as_posix().replace(os.path.sep, ".")
-        )
-        template_module = import_module(module_path)
-        try:
-            description = template_module.MLOpsStack.get_description()
-        except AttributeError:
-            description = "Products for SageMaker Projects"
-        try:
-            support_email = template_module.MLOpsStack.get_support_email()
-        except AttributeError:
-            support_email = "ml_admins@example.com"
-
-        try:
-            product_name = template_module.MLOpsStack.get_product_name()
-        except AttributeError:
-            product_name = short_name
-
-        try:
-            support_url = template_module.MLOpsStack.get_support_url()
-        except AttributeError:
-            support_url = 'https://yoursite.com/products/support/'
-
-        try:
-            support_description = template_module.MLOpsStack.get_support_description()
-        except AttributeError:
-            support_description = 'Mention about your support details'
+        product: MLOpsBaseProductStack = product_class(self, "project", asset_bucket=sc_product_artifact_bucket,
+                                                       app_prefix=app_prefix)
 
         sm_projects_product = servicecatalog.CloudFormationProduct(
             self,
-            short_name,
-            product_name=product_name,
+            product.__class__.__name__,
+            product_name=product.product_name,
             owner="Global ML Team",
             product_versions=[
                 servicecatalog.CloudFormationProductVersion(
                     cloud_formation_template=servicecatalog.CloudFormationTemplate.from_product_stack(
-                        template_module.MLOpsStack(
-                            self,
-                            "project",
-                            asset_bucket=sc_product_artifact_bucket,
-                            **kwargs,
-                        )
+                        product
                     ),
                     product_version_name="v1",
                     validate_template=True,
                 )
             ],
-            description=description,
-            support_email=support_email,
-            support_description=support_description,
-            support_url=support_url,
+            description=product.description,
+            support_email=product.support_email,
+            support_description=product.support_description,
+            support_url=product.support_url,
         )
         portfolio.add_product(sm_projects_product)
         portfolio.set_launch_role(sm_projects_product, launch_role)

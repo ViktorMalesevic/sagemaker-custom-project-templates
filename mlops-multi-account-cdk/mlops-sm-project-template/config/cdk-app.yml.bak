@@ -19,7 +19,7 @@
 cdk_app_config:
   app_prefix: mlops-cdk
   pipeline:
-    account: xxxxxxxxxxxxx
+    account: xxxxxxxxxxxx
     region: us-east-1
     code_commit:
       repo_name: mlops-sm-project-template
@@ -31,32 +31,32 @@ cdk_app_config:
       default_region: us-east-1
       stages:
         - stage_name: dev
-          account: xxxxxxxxxxxxx
+          account: xxxxxxxxxxxx
           #region: us-east-1
           #enabled: True
         - stage_name: preprod
-          account: xxxxxxxxxxxxx
+          account: xxxxxxxxxxxx
           #region: us-east-1
           #enabled: True
         - stage_name: prod
-          account: xxxxxxxxxxxxx
+          account: xxxxxxxxxxxx
           #region: us-east-1
           #enabled: True
 
     - set_name: second-example
-      enabled: True
+      enabled: False
       default_region: us-east-1
       stages:
         - stage_name: dev
-          account: xxxxxxxxxxxxx
+          account: xxxxxxxxxxxx
           region: us-east-1
           enabled: True
         - stage_name: preprod
-          account: xxxxxxxxxxxxx
+          account: xxxxxxxxxxxx
           region: us-east-1
           enabled: True
         - stage_name: prod
-          account: xxxxxxxxxxxxx
+          account: xxxxxxxxxxxx
           region: us-east-1
           enabled: True
 
