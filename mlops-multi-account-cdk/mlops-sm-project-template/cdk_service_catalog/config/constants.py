@@ -18,7 +18,7 @@
 CODE_COMMIT_REPO_NAME = "mlops-sm-project-template"
 PIPELINE_BRANCH = "main"
 
-PIPELINE_ACCOUNT = "718958633364"  # account used to host the pipeline handling updates of this repository
+PIPELINE_ACCOUNT = ""  # account used to host the pipeline handling updates of this repository
 
-DEFAULT_DEPLOYMENT_REGION = "us-east-1"
+DEFAULT_DEPLOYMENT_REGION = "eu-west-1"
 APP_PREFIX = "mlops-cdk"
