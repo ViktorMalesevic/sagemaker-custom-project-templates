@@ -16,9 +16,10 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-from typing import List, Any
 import logging
 from logging import Logger
+from typing import List, Optional
+
 import aws_cdk
 import aws_cdk as cdk
 from aws_cdk import CfnParameter
@@ -29,8 +30,11 @@ from aws_cdk import aws_servicecatalog as servicecatalog
 from constructs import Construct
 
 from cdk_service_catalog.products.constructs.base_product_stack import MLOpsBaseProductStack
-from cdk_utilities.class_utilities import ClassUtilities
-
+from cdk_service_catalog.products.constructs.discovery.product_config import ProductConfig
+from cdk_service_catalog.products.constructs.discovery.product_discovery_helper import ProductDiscoveryHelper
+from cdk_utilities.cdk_app_config import ProductSearchConfig
+from cdk_utilities.mlops_project_config import MetadataConfig
+import uuid
 
 class SageMakerServiceCatalog(Stack):
     logging.basicConfig(level=logging.INFO)
@@ -40,6 +44,7 @@ class SageMakerServiceCatalog(Stack):
             scope: Construct,
             construct_id: str,
             app_prefix: str,
+            product_search_conf: ProductSearchConfig,
             **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -84,6 +89,7 @@ class SageMakerServiceCatalog(Stack):
         self.add_all_products(
             portfolio=portfolio,
             launch_role=launch_role,
+            product_search_conf=product_search_conf,
             sc_product_artifact_bucket=sc_product_artifact_bucket,
             app_prefix=app_prefix,
         )
@@ -92,23 +98,34 @@ class SageMakerServiceCatalog(Stack):
             self,
             portfolio: servicecatalog.Portfolio,
             launch_role: iam.Role,
+            product_search_conf: ProductSearchConfig,
             base_package: str = 'cdk_service_catalog.products',
             exclude_packages: List[str] = ('constructs', 'seed_code'),
             **kwargs
     ):
-        product_classes: List[Any] = ClassUtilities.find_subclasses(
-            base_class=MLOpsBaseProductStack,
+
+        discovery_type: str = product_search_conf.discovery_type
+        discovery_precedence: str = product_search_conf.discovery_precedence
+        self.logger.info(f'product_discovery_type : {discovery_type}, discovery_precedence : {discovery_precedence}')
+        product_discovery: ProductDiscoveryHelper = ProductDiscoveryHelper(discovery_type, discovery_precedence)
+
+        product_configs: List[ProductConfig] = product_discovery.get_product_classes(
             base_package=base_package,
-            exclude_packages=exclude_packages
+            exclude_packages=exclude_packages,
+            product_config_filename=product_search_conf.config_filename
         )
 
-        for product_class in product_classes:
-            self.logger.info(f'product_class : {product_class.__name__}')
+        for product_config in product_configs:
+            product_name: str = ''
+            if product_config.args:
+                metadata: MetadataConfig = product_config.args.metadata
+                product_name = f', product_name : {metadata.product_name}'
+            self.logger.info(f'product_class : {product_config.class_ref.__name__} {product_name}')
             SageMakerServiceCatalogProduct(
                 self,
-                product_class.__name__,
+                f'{product_config.class_ref.__name__}-{uuid.uuid1()}',
                 portfolio=portfolio,
-                product_class=product_class,
+                product_config=product_config,
                 launch_role=launch_role,
                 **kwargs,
             )
@@ -232,7 +249,7 @@ class SageMakerServiceCatalogProduct(cdk.NestedStack):
             scope: Construct,
             construct_id: str,
             portfolio: servicecatalog.Portfolio,
-            product_class: Any,
+            product_config: ProductConfig,
             launch_role: iam.Role,
             sc_product_artifact_bucket: s3.Bucket,
             app_prefix: str,
@@ -240,8 +257,21 @@ class SageMakerServiceCatalogProduct(cdk.NestedStack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        product: MLOpsBaseProductStack = product_class(self, "project", asset_bucket=sc_product_artifact_bucket,
-                                                       app_prefix=app_prefix)
+        product: Optional[MLOpsBaseProductStack]
+
+        if product_config.args:
+            product = product_config.class_ref(
+                self, "project",
+                asset_bucket=sc_product_artifact_bucket,
+                mlops_project_config=product_config.args,
+                app_prefix=app_prefix
+            )
+        else:
+            product = product_config.class_ref(
+                self, "project",
+                asset_bucket=sc_product_artifact_bucket,
+                app_prefix=app_prefix
+            )
 
         sm_projects_product = servicecatalog.CloudFormationProduct(
             self,

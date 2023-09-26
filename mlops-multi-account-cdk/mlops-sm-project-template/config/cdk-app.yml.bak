@@ -24,7 +24,10 @@ cdk_app_config:
     code_commit:
       repo_name: mlops-sm-project-template
       branch_name: main
-
+  product_search:
+    config_filename: - default value to mlops_project.yml
+    discovery_type: class|config|hybrid
+    discovery_precedence: class|config|all - default class, this will only be used when discovery_type=hybrid
   deployments:
     - set_name: first-example
       enabled: True

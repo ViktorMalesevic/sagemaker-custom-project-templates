@@ -25,6 +25,8 @@
     "@aws-cdk/core:target-partitions": [
       "aws",
       "aws-cn"
-    ]
+    ],
+    "product_discovery_type": "hybrid",
+    "product_config_filename": "mlops_project.yml"
   }
 }

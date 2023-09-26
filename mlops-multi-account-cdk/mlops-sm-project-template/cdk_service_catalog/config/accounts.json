@@ -1,16 +1,10 @@
 [
-    {
-        "SET_NAME": "first-example",
-        "DEV_ACCOUNT": "",
-        "PREPROD_ACCOUNT": "",
-        "PROD_ACCOUNT": "",
-        "DEPLOYMENT_REGION":""
-    },
+
     {
         "SET_NAME": "second-example",
-        "DEV_ACCOUNT": "",
-        "PREPROD_ACCOUNT": "",
-        "PROD_ACCOUNT": "",
-        "DEPLOYMENT_REGION":""
+        "DEV_ACCOUNT": "910839972035",
+        "PREPROD_ACCOUNT": "485030396940",
+        "PROD_ACCOUNT": "307112484732",
+        "DEPLOYMENT_REGION": "us-east-1"
     }
 ]

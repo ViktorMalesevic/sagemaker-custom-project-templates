@@ -25,6 +25,13 @@ from yamldataclassconfig.config import YamlDataClassConfig
 
 
 @dataclass
+class ProductSearchConfig(DataClassJsonMixin):
+    config_filename: str = field(default='mlops_project.yml')
+    discovery_type: str = field(default='hybrid')
+    discovery_precedence: str = field(default='class')
+
+
+@dataclass
 class DeploymentStage(DataClassJsonMixin):
     stage_name: str
     account: int
@@ -72,6 +79,7 @@ class CdkAppConfig(DataClassJsonMixin):
     app_prefix: str = field(default='mlops-cdk')
     pipeline: PipelineConfig = field(default=None)
     deployments: List[DeploymentConfig] = field(default=None)
+    product_search: ProductSearchConfig = field(default_factory=ProductSearchConfig)
 
 
 @dataclass
@@ -119,7 +127,8 @@ class AppConfigOld:
             code_commit=code_commit
         )
         deployments: List[DeploymentConfig] = list()
-        cdk_app_config: CdkAppConfig = CdkAppConfig(app_prefix=APP_PREFIX, pipeline=pipeline, deployments=deployments)
+        cdk_app_config: CdkAppConfig = CdkAppConfig(
+            app_prefix=APP_PREFIX, pipeline=pipeline, deployments=deployments, product_search=ProductSearchConfig())
         conf: AppConfig = AppConfig(cdk_app_config=cdk_app_config)
 
         for old_dc in self.cdk_app_config_old:

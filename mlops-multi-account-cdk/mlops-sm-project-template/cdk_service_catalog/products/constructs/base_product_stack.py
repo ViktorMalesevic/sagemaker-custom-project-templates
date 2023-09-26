@@ -99,6 +99,9 @@ class MLOpsBaseProductStack(BaseProductMetadata):
 
         self.setup_pipeline()
 
+    def get_seed_code_base_path(self) -> str:
+        return self.get_subclass_realpath(base_dir=self.base_dir)
+
     def setup_sagemaker_model_package_group_policies(self):
         model_package_group_policy = iam.PolicyDocument(
             statements=[
@@ -274,7 +277,8 @@ class MLOpsBaseProductStack(BaseProductMetadata):
             repository_name=f"{self.project_name}-{construct_id}-build",
             code=codecommit.Code.from_zip_file(
                 ZipUtility.create_zip(
-                    local_path=f"{self.subclass_path}{os.path.sep}{self.get_build_app_seed_code_relative_path()}",
+                    local_path=f"{self.get_seed_code_base_path()}{os.path.sep}"
+                               f"{self.get_build_app_seed_code_relative_path()}",
                     out_path=zip_out_path
                 ),
                 branch="main",
@@ -287,7 +291,8 @@ class MLOpsBaseProductStack(BaseProductMetadata):
             code=codecommit.Code.from_zip_file(
                 ZipUtility.create_zip(
                     out_path=zip_out_path,
-                    local_path=f"{self.subclass_path}{os.path.sep}{self.get_deploy_app_seed_code_relative_path()}"
+                    local_path=f"{self.get_seed_code_base_path()}{os.path.sep}"
+                               f"{self.get_deploy_app_seed_code_relative_path()}"
                 ),
                 branch="main",
             ),

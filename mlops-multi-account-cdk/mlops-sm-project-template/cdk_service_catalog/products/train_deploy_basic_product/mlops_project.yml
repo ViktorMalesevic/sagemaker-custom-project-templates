@@ -1,0 +1,14 @@
+mlops_project_config:
+  metadata:
+    description: |-
+      This template includes a model building pipeline that includes a workflow to pre-process, train, evaluate
+      and register a model. The deploy pipeline creates a dev,preprod and production endpoint.
+      The target DEV/PREPROD/PROD accounts are parameterized in this template.
+    product_name: Configuration based Build & Deploy MLOps parameterized template for real-time deployment
+    support_email: configuration_basic_project@example.com
+    support_url: https://example.com/support/configuration_based_basic_project
+    support_description: Example of support details for configuration based basic project
+  seed_code:
+    app_type: simple
+    build_app_relative_path: ./seed_code/build_app
+    deploy_app_relative_path: ./seed_code/deploy_app

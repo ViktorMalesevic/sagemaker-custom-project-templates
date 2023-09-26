@@ -1,5 +1,3 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
 # SPDX-License-Identifier: MIT-0
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this
@@ -14,11 +12,13 @@
 # HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+from cdk_service_catalog.products.constructs.base_product_stack import MLOpsBaseProductStack
+from typing import Any
+from dataclasses import dataclass, field
 
-CODE_COMMIT_REPO_NAME = "mlops-sm-project-template"
-PIPELINE_BRANCH = "main"
 
-PIPELINE_ACCOUNT = "718958633364"  # account used to host the pipeline handling updates of this repository
-
-DEFAULT_DEPLOYMENT_REGION = "us-east-1"
-APP_PREFIX = "mlops-cdk"
+@dataclass
+class ProductConfig:
+    class_ref: Any
+    path: str
+    args: Any = field(default=None)

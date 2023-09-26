@@ -82,6 +82,10 @@ class BaseProductMetadata(sc.ProductStack):
             sub_path = os.path.sep.join(parts).split(f'{os.path.sep}{common_part}{os.path.sep}')[-1]
         return f'{base_dir}{os.path.sep}{sub_path}'
 
+    @abstractmethod
+    def get_seed_code_base_path(self) -> str:
+        pass
+
     def __init__(
             self,
             scope: Construct,

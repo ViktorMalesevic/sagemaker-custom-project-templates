@@ -69,6 +69,7 @@ class MLOpsCdkApp:
                 app_prefix=cac.app_prefix,
                 set_name=dc.set_name,
                 deploy_conf=dev_conf,
+                product_search_conf=cac.product_search,
                 pipeline_conf=cac.pipeline,
                 description="CI/CD CDK Pipelines for Sagemaker Projects Service Catalog",
                 env=cdk.Environment(account=str(cac.pipeline.account), region=cac.pipeline.region)

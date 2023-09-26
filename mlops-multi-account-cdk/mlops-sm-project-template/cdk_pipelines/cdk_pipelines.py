@@ -33,13 +33,14 @@ from constructs import Construct
 from cdk_service_catalog.sm_service_catalog import SageMakerServiceCatalog
 from cdk_utilities.cdk_app_config import (
     DeploymentStage,
-    PipelineConfig
+    PipelineConfig, ProductSearchConfig
 )
 
 
 class SageMakerServiceCatalogStage(Stage):
     def __init__(
             self, scope: Construct, construct_id: str, app_prefix: str,
+            product_search_conf: ProductSearchConfig,
             **kwargs
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -48,6 +49,7 @@ class SageMakerServiceCatalogStage(Stage):
             self,
             "template",
             app_prefix=app_prefix,
+            product_search_conf=product_search_conf,
             **kwargs,
         )
 
@@ -55,6 +57,7 @@ class SageMakerServiceCatalogStage(Stage):
 class CdkPipelineStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, set_name: str,
                  app_prefix: str, deploy_conf: DeploymentStage,
+                 product_search_conf: ProductSearchConfig,
                  pipeline_conf: PipelineConfig, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -98,6 +101,7 @@ class CdkPipelineStack(Stack):
                 self,
                 "mlops-sm-project",
                 app_prefix=f'{app_prefix}-{set_name}',
+                product_search_conf=product_search_conf,
                 env={
                     "account": dev_account,
                     "region": dev_region,

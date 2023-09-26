@@ -15,10 +15,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-CODE_COMMIT_REPO_NAME = "mlops-sm-project-template"
-PIPELINE_BRANCH = "main"
+from abc import ABC, abstractmethod
+from typing import List
 
-PIPELINE_ACCOUNT = "718958633364"  # account used to host the pipeline handling updates of this repository
+from cdk_service_catalog.products.constructs.discovery.product_config import ProductConfig
 
-DEFAULT_DEPLOYMENT_REGION = "us-east-1"
-APP_PREFIX = "mlops-cdk"
+
+class ProductDiscovery(ABC):
+
+    @abstractmethod
+    def find_all(self, **kwargs) -> List[ProductConfig]:
+        pass
