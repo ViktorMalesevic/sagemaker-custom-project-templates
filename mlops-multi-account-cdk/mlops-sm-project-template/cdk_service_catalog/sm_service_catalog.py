@@ -33,8 +33,9 @@ from cdk_service_catalog.products.constructs.base_product_stack import MLOpsBase
 from cdk_service_catalog.products.constructs.discovery.product_config import ProductConfig
 from cdk_service_catalog.products.constructs.discovery.product_discovery_helper import ProductDiscoveryHelper
 from cdk_utilities.cdk_app_config import ProductSearchConfig
-from cdk_utilities.mlops_project_config import MetadataConfig
+from cdk_utilities.mlops_project_config import MetadataConfig, ProjectDeploymentConfig
 import uuid
+
 
 class SageMakerServiceCatalog(Stack):
     logging.basicConfig(level=logging.INFO)
@@ -44,6 +45,7 @@ class SageMakerServiceCatalog(Stack):
             scope: Construct,
             construct_id: str,
             app_prefix: str,
+            infra_set_name: str,
             product_search_conf: ProductSearchConfig,
             **kwargs,
     ) -> None:
@@ -89,6 +91,7 @@ class SageMakerServiceCatalog(Stack):
         self.add_all_products(
             portfolio=portfolio,
             launch_role=launch_role,
+            infra_set_name=infra_set_name,
             product_search_conf=product_search_conf,
             sc_product_artifact_bucket=sc_product_artifact_bucket,
             app_prefix=app_prefix,
@@ -98,6 +101,7 @@ class SageMakerServiceCatalog(Stack):
             self,
             portfolio: servicecatalog.Portfolio,
             launch_role: iam.Role,
+            infra_set_name: str,
             product_search_conf: ProductSearchConfig,
             base_package: str = 'cdk_service_catalog.products',
             exclude_packages: List[str] = ('constructs', 'seed_code'),
@@ -120,6 +124,15 @@ class SageMakerServiceCatalog(Stack):
             if product_config.args:
                 metadata: MetadataConfig = product_config.args.metadata
                 product_name = f', product_name : {metadata.product_name}'
+                dc: ProjectDeploymentConfig = product_config.args.deployment
+                conf_infra_set_names: List[str] = list(map(lambda x: str(x).strip().lower(), dc.infra_set_names))
+                if 'all' not in conf_infra_set_names and \
+                        str(infra_set_name).strip().lower() not in conf_infra_set_names:
+                    self.logger.warning(f'Skipping product_class : {product_config.class_ref.__name__} {product_name}, '
+                                        f'because this product has requested for '
+                                        f'infra set_name : {str(dc.infra_set_names)}, '
+                                        f'but the current infra set_name : {infra_set_name}')
+                    continue
             self.logger.info(f'product_class : {product_config.class_ref.__name__} {product_name}')
             SageMakerServiceCatalogProduct(
                 self,

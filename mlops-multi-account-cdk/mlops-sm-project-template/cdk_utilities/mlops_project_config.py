@@ -14,12 +14,16 @@
 # HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-import os
 from dataclasses import dataclass, field
-from pathlib import Path
+from typing import List
 
 from dataclasses_json import DataClassJsonMixin
 from yamldataclassconfig.config import YamlDataClassConfig
+
+
+@dataclass
+class ProjectDeploymentConfig(DataClassJsonMixin):
+    infra_set_names: List[str] = field(default_factory=lambda: ['all'])
 
 
 @dataclass
@@ -43,21 +47,10 @@ class MetadataConfig(DataClassJsonMixin):
 class MlopsProjectConfig(DataClassJsonMixin):
     metadata: MetadataConfig = field(default=None)
     seed_code: SeedCodeConfig = field(default=None)
+    deployment: ProjectDeploymentConfig = field(default_factory=ProjectDeploymentConfig)
 
 
 @dataclass
 class ProjectConfig(YamlDataClassConfig):
     mlops_project_config: MlopsProjectConfig = field(default=None)
 
-
-# cnf: ProjectConfig = ProjectConfig()
-# base_dir: str = os.path.abspath(f'{os.path.dirname(__file__)}{os.path.sep}..')
-# cnf.load(Path(os.path.join(
-#     base_dir,
-#     'cdk_service_catalog',
-#     'products',
-#     'train_deploy_basic_product',
-#     'mlops_project.yml'
-# )))
-#
-# print(str(cnf.mlops_project_config))
