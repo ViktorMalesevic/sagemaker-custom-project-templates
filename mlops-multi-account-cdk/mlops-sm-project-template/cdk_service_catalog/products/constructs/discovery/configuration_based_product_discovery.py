@@ -31,6 +31,7 @@ from cdk_utilities.mlops_project_config import ProjectConfig, MlopsProjectConfig
 class ConfigurationBasedProductDiscovery(ProductDiscovery):
     DEFAULT_APP_TYPE_SIMPLE: str = 'simple'
     APP_TYPE_SIMPLE: str = 'simple'
+    APP_TYPE_BATCH: str = 'batch'
     APP_TYPE_CONTAINER: str = 'container'
 
     def __init__(self):
@@ -76,6 +77,7 @@ class ConfigurationBasedProductDiscovery(ProductDiscovery):
     def get_class_by(cls, app_type: str) -> Any:
         classes: Dict[str, Any] = {
             cls.APP_TYPE_SIMPLE: ConfigurationBasedProduct,
+            cls.APP_TYPE_BATCH: ConfigurationBasedProduct,
             cls.APP_TYPE_CONTAINER: ConfigurationBasedBYOCProduct
         }
         return classes.get(str(app_type).strip().lower(), ConfigurationBasedProduct)

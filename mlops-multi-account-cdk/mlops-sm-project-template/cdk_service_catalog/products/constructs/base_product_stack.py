@@ -64,7 +64,8 @@ class MLOpsBaseProductStack(BaseProductMetadata):
         self.build_app_repository: Optional[codecommit.Repository] = None
         self.deploy_app_repository: Optional[codecommit.Repository] = None
         self.pipeline_artifact_bucket: Optional[s3.Bucket] = None
-
+        self.BOOL_TRUE: bool = True
+        self.BOOL_FALSE: bool = False
         # Define required parameters
         self.define_input_parameters()
 
@@ -369,8 +370,11 @@ class MLOpsBaseProductStack(BaseProductMetadata):
             preprod_account=self.preprod_account,
             prod_account=self.prod_account,
             deployment_region=self.deployment_region,
-            create_model_event_rule=True,
+            create_model_event_rule=self.get_create_model_event_rule(),
         )
+
+    def get_create_model_event_rule(self) -> bool:
+        return self.BOOL_TRUE
 
     def get_build_app_seed_code_relative_path(self) -> str:
         return self._default_build_app_seed_code_relative_path

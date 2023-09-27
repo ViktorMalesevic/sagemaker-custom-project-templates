@@ -15,7 +15,7 @@ mlops_project_config:
     support_url: https://example.com/support/configuration_based_batch_inference_project
     support_description: Example of support details for configuration based batch inference project
   seed_code:
-    app_type: simple
+    app_type: batch
     build_app_relative_path: ./seed_code/build_app
     deploy_app_relative_path: ./seed_code/deploy_app
 #  deployment:

@@ -55,3 +55,8 @@ class ConfigurationBasedBYOCProduct(MLOpsBYOCBaseProductStack):
 
     def get_seed_code_base_path(self) -> str:
         return self.mlops_project_config.seed_code.absolute_base_path
+
+    def get_create_model_event_rule(self) -> bool:
+        return self.BOOL_TRUE if \
+            str(self.mlops_project_config.seed_code.app_type).strip().lower() in ['simple', 'container'] \
+            else self.BOOL_FALSE

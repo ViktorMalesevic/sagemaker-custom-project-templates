@@ -51,3 +51,6 @@ class BatchInferenceProjectProduct(MLOpsBaseProductStack):
         self.support_url = 'https://example.com/support/batch_inference_project'
 
         self.support_description = 'Example of support details for batch inference project'
+
+    def get_create_model_event_rule(self) -> bool:
+        return self.BOOL_FALSE
