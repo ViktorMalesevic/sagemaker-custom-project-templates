@@ -12,6 +12,6 @@ mlops_project_config:
     app_type: simple
     build_app_relative_path: ./seed_code/build_app
     deploy_app_relative_path: ./seed_code/deploy_app
-#  deployment:
-#    infra_set_names:
-#      - second-example
+  deployment:
+    infra_set_names:
+      - second-example

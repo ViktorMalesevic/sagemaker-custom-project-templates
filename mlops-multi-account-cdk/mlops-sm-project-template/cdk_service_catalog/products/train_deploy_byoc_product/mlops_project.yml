@@ -13,6 +13,6 @@ mlops_project_config:
     app_type: container
     build_app_relative_path: ./seed_code/build_app
     deploy_app_relative_path: ./seed_code/deploy_app
-#  deployment:
-#    infra_set_names:
-#      - all
+  deployment:
+    infra_set_names:
+      - all

@@ -120,23 +120,26 @@ class SageMakerServiceCatalog(Stack):
         )
 
         for product_config in product_configs:
-            product_name: str = ''
+            additional_log: str = ''
+            app_type: str = ''
             if product_config.args:
                 metadata: MetadataConfig = product_config.args.metadata
-                product_name = f', product_name : {metadata.product_name}'
+                app_type = f'{str(product_config.args.seed_code.app_type).upper()}'
+                additional_log = f', App type : {app_type}, ' \
+                                 f'product_name : {metadata.product_name}'
                 dc: ProjectDeploymentConfig = product_config.args.deployment
                 conf_infra_set_names: List[str] = list(map(lambda x: str(x).strip().lower(), dc.infra_set_names))
                 if 'all' not in conf_infra_set_names and \
                         str(infra_set_name).strip().lower() not in conf_infra_set_names:
-                    self.logger.warning(f'Skipping product_class : {product_config.class_ref.__name__} {product_name}, '
-                                        f'because this product has requested for '
+                    self.logger.warning(f'Skipping product_class : {product_config.class_ref.__name__} '
+                                        f'{additional_log}, because this product has requested for '
                                         f'infra set_name : {str(dc.infra_set_names)}, '
                                         f'but the current infra set_name : {infra_set_name}')
                     continue
-            self.logger.info(f'product_class : {product_config.class_ref.__name__} {product_name}')
+            self.logger.info(f'product_class : {product_config.class_ref.__name__} {additional_log}')
             SageMakerServiceCatalogProduct(
                 self,
-                f'{product_config.class_ref.__name__}-{uuid.uuid1()}',
+                f'{product_config.class_ref.__name__}{app_type}-{uuid.uuid1()}',
                 portfolio=portfolio,
                 product_config=product_config,
                 launch_role=launch_role,
