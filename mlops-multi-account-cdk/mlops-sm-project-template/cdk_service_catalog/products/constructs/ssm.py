@@ -25,7 +25,7 @@ from constructs import Construct
 
 class SSMConstruct(Construct):
     def __init__(self, scope: Construct, construct_id: str, project_name: str, preprod_account: str, prod_account: str,
-                 deployment_region: str, **kwargs) -> None:
+                 prod_deployment_region: str, preprod_deployment_region: str,**kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # SSM parameters for the project
@@ -67,7 +67,7 @@ class SSMConstruct(Construct):
             "PreProdRegionParameter",
             # parameter_name="/mlops/preprod/region",
             parameter_name=f"/mlops/{project_name}/preprod/region",
-            string_value=deployment_region,
+            string_value=preprod_deployment_region,
             simple_name=False,
         )
 
@@ -86,6 +86,6 @@ class SSMConstruct(Construct):
             "ProdRegionParameter",
             # parameter_name="/mlops/prod/region",
             parameter_name=f"/mlops/{project_name}/prod/region",
-            string_value=deployment_region,
+            string_value=prod_deployment_region,
             simple_name=False,
         )

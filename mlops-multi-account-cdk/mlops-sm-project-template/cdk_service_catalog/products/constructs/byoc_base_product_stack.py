@@ -111,7 +111,8 @@ class MLOpsBYOCBaseProductStack(MLOpsBaseProductStack):
             prod_account=self.prod_account,
             model_bucket_arn=self.s3_artifact.bucket_arn,
             ecr_repo_arn=self.ml_models_ecr_repo.repository_arn,
-            deployment_region=self.deployment_region,
+            preprod_deployment_region=self.preprod_deployment_region,
+            prod_deployment_region=self.prod_deployment_region,
             create_model_event_rule=True,
         )
 

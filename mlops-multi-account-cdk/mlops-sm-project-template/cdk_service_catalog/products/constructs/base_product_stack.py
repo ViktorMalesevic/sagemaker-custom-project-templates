@@ -16,7 +16,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from pathlib import Path
 import aws_cdk
 from aws_cdk import (
@@ -35,6 +35,7 @@ from cdk_service_catalog.products.constructs.build_pipeline import BuildPipeline
 from cdk_service_catalog.products.constructs.deploy_pipeline import DeployPipelineConstruct
 from cdk_service_catalog.products.constructs.ssm import SSMConstruct
 from cdk_utilities.zip_utils import ZipUtility
+from cdk_utilities.config_helper import ConfigHelper
 
 
 class MLOpsBaseProductStack(BaseProductMetadata):
@@ -47,7 +48,9 @@ class MLOpsBaseProductStack(BaseProductMetadata):
             **kwargs
     ) -> None:
         app_prefix: str = kwargs["app_prefix"]
+        self.infra_set_name: str = kwargs["infra_set_name"]
         kwargs.pop('app_prefix')
+        kwargs.pop('infra_set_name')
         super().__init__(scope, construct_id, asset_bucket=asset_bucket, **kwargs)
 
         self.base_dir: str = os.path.abspath(f'{os.path.dirname(__file__)}{os.path.sep}..')
@@ -60,7 +63,8 @@ class MLOpsBaseProductStack(BaseProductMetadata):
         self.project_id: str = ''
         self.preprod_account: str = ''
         self.prod_account: str = ''
-        self.deployment_region: str = ''
+        self.preprod_deployment_region: str = ''
+        self.prod_deployment_region: str = ''
         self.build_app_repository: Optional[codecommit.Repository] = None
         self.deploy_app_repository: Optional[codecommit.Repository] = None
         self.pipeline_artifact_bucket: Optional[s3.Bucket] = None
@@ -78,7 +82,8 @@ class MLOpsBaseProductStack(BaseProductMetadata):
             project_name=self.project_name,
             preprod_account=self.preprod_account,
             prod_account=self.prod_account,
-            deployment_region=self.deployment_region,  # Modify when x-region is enabled
+            preprod_deployment_region=self.preprod_deployment_region,  # Modify when x-region is enabled
+            prod_deployment_region=self.prod_deployment_region
         )
 
         self.setup_seed_code_repositories(app_prefix, construct_id)
@@ -322,24 +327,52 @@ class MLOpsBaseProductStack(BaseProductMetadata):
             type="String",
             min_length=11,
             max_length=13,
+            allowed_values=ConfigHelper.get_accounts_by(self.infra_set_name, 'preprod'),
             description="Id of preprod account.",
         ).value_as_string
+
+        self.preprod_deployment_region = aws_cdk.CfnParameter(
+            self,
+            "PreProdDeploymentRegion",
+            type="String",
+            min_length=8,
+            max_length=10,
+            allowed_values=ConfigHelper.get_regions_by(self.infra_set_name, 'preprod'),
+            description="Deployment region for Pre-production account.",
+        ).value_as_string
+
         self.prod_account = aws_cdk.CfnParameter(
             self,
             "ProdAccount",
             type="String",
             min_length=11,
             max_length=13,
+            allowed_values=ConfigHelper.get_accounts_by(self.infra_set_name, 'prod'),
             description="Id of prod account.",
         ).value_as_string
-        self.deployment_region = aws_cdk.CfnParameter(
+        self.prod_deployment_region = aws_cdk.CfnParameter(
             self,
-            "DeploymentRegion",
+            "ProdDeploymentRegion",
             type="String",
             min_length=8,
             max_length=10,
-            description="Deployment region for preprod and prod account.",
+            allowed_values=ConfigHelper.get_regions_by(self.infra_set_name, 'prod'),
+            description="Deployment region for Production account.",
         ).value_as_string
+
+        preprod_accounts: List[str] = ConfigHelper.get_accounts_by(self.infra_set_name, 'preprod')
+
+
+        account_region_rule = aws_cdk.CfnRule(self, "AccountRegionRule")
+
+        for account in preprod_accounts:
+            regions: List[str] = ConfigHelper.get_regions_by_account(self.infra_set_name, account, 'preprod')
+            account_region_rule.add_assertion(
+                condition=aws_cdk.Fn.condition_and([aws_cdk.Fn.condition_equals(account, self.preprod_account), aws_cdk.Fn.condition_contains(regions, self.preprod_deployment_region)]),
+                description="Check that PreProd Account and region should be as per configuration"
+            )
+
+
 
     def setup_resource(self):
         # nothing to do here
@@ -369,7 +402,8 @@ class MLOpsBaseProductStack(BaseProductMetadata):
             s3_artifact=self.s3_artifact,
             preprod_account=self.preprod_account,
             prod_account=self.prod_account,
-            deployment_region=self.deployment_region,
+            preprod_deployment_region=self.preprod_deployment_region,
+            prod_deployment_region=self.prod_deployment_region,
             create_model_event_rule=self.get_create_model_event_rule(),
         )
 

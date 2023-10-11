@@ -44,7 +44,8 @@ class DeployPipelineConstruct(Construct):
             s3_artifact: s3.IBucket,
             preprod_account: str,
             prod_account: str,
-            deployment_region: str,
+            preprod_deployment_region: str,
+            prod_deployment_region: str,
             create_model_event_rule: bool,
             ecr_repo_arn: Optional[str] = None,
             model_bucket_arn: Optional[str] = None,
@@ -258,8 +259,8 @@ class DeployPipelineConstruct(Construct):
         # add stages to deploy to the different environments
         for stage, account, region in [
             ('Dev', Aws.ACCOUNT_ID, cdk.Aws.REGION),
-            ('PreProd', preprod_account, deployment_region),
-            ('Prod', prod_account, deployment_region)
+            ('PreProd', preprod_account, preprod_deployment_region),
+            ('Prod', prod_account, prod_deployment_region)
         ]:
 
             actions: typing.Optional[typing.List[codepipeline.IAction]] = list()

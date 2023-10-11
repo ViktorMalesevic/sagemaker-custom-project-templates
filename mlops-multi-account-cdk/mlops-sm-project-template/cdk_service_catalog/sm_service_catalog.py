@@ -91,23 +91,23 @@ class SageMakerServiceCatalog(Stack):
         self.add_all_products(
             portfolio=portfolio,
             launch_role=launch_role,
-            infra_set_name=infra_set_name,
             product_search_conf=product_search_conf,
             sc_product_artifact_bucket=sc_product_artifact_bucket,
             app_prefix=app_prefix,
+            infra_set_name=infra_set_name
         )
 
     def add_all_products(
             self,
             portfolio: servicecatalog.Portfolio,
             launch_role: iam.Role,
-            infra_set_name: str,
             product_search_conf: ProductSearchConfig,
             base_package: str = 'cdk_service_catalog.products',
             exclude_packages: List[str] = ('constructs', 'seed_code'),
             **kwargs
     ):
 
+        infra_set_name: str = kwargs.get('infra_set_name')
         discovery_type: str = product_search_conf.discovery_type
         discovery_precedence: str = product_search_conf.discovery_precedence
         self.logger.info(f'product_discovery_type : {discovery_type}, discovery_precedence : {discovery_precedence}')
@@ -269,6 +269,7 @@ class SageMakerServiceCatalogProduct(cdk.NestedStack):
             launch_role: iam.Role,
             sc_product_artifact_bucket: s3.Bucket,
             app_prefix: str,
+            infra_set_name: str,
             **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -280,13 +281,15 @@ class SageMakerServiceCatalogProduct(cdk.NestedStack):
                 self, "project",
                 asset_bucket=sc_product_artifact_bucket,
                 mlops_project_config=product_config.args,
-                app_prefix=app_prefix
+                app_prefix=app_prefix,
+                infra_set_name=infra_set_name
             )
         else:
             product = product_config.class_ref(
                 self, "project",
                 asset_bucket=sc_product_artifact_bucket,
-                app_prefix=app_prefix
+                app_prefix=app_prefix,
+                infra_set_name=infra_set_name
             )
 
         sm_projects_product = servicecatalog.CloudFormationProduct(

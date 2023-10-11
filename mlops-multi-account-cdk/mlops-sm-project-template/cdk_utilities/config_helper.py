@@ -19,7 +19,7 @@
 import logging
 from logging import Logger
 import os
-from typing import Optional
+from typing import Optional, Dict, List, Set
 
 from cdk_utilities.cdk_app_config import (
     AppConfig,
@@ -72,6 +72,7 @@ class ConfigHelper:
                 app_config_old.load(file_path=json_config_path)
                 self.app_config = app_config_old.get_new_app_config()
         self.logger.info(f'cdk app config : {str(self.app_config)}')
+        ConfigHelper.INSTANCE = self
 
     @classmethod
     def get_config(cls) -> CdkAppConfig:
@@ -79,3 +80,37 @@ class ConfigHelper:
         if cls.INSTANCE is None:
             cls.INSTANCE = ConfigHelper()
         return cls.INSTANCE.app_config.cdk_app_config
+
+    @classmethod
+    def get_regions_by_account(cls, set_name: str, account: str, stage_name) -> List[str]:
+        account_regions: Set[str] = set()
+        for ds in filter(lambda x: str(x.set_name).strip().lower() == str(set_name).strip().lower(), cls.INSTANCE.app_config.cdk_app_config.deployments):
+            for stage in filter(lambda y:
+                                str(y.stage_name).strip().lower().startswith(str(stage_name).strip().lower()) and str(account).strip() == str(y.account).strip(),
+                                ds.get_deployment_stages()):
+                account_regions.add(stage.region)
+        return [*account_regions]
+
+    @classmethod
+    def get_regions_by(cls, set_name: str, stage_name) -> List[str]:
+        regions: Set[str] = set()
+        for ds in filter(lambda x: x.set_name == set_name, cls.INSTANCE.app_config.cdk_app_config.deployments):
+            for stage in filter(lambda y: str(y.stage_name).strip().lower().startswith(str(stage_name).strip().lower()),
+                                ds.get_deployment_stages()):
+                regions.add(stage.region)
+        return [*regions]
+
+    @classmethod
+    def get_accounts_by(cls, set_name: str, stage_name: str) -> List[str]:
+        accounts: Set[str] = set()
+        for ds in filter(lambda x: x.set_name == set_name, cls.INSTANCE.app_config.cdk_app_config.deployments):
+            for stage in filter(lambda y: str(y.stage_name).strip().lower().startswith(str(stage_name).strip().lower()),
+                                ds.get_deployment_stages()):
+                accounts.add(str(stage.account))
+        return [*accounts]
+
+# os.environ['CDK_DEFAULT_REGION']='us'
+# os.environ['CDK_DEFAULT_ACCOUNT']='us-west-2'
+# c = ConfigHelper()
+#
+# print(c.get_accounts_by('second-example', 'prod'))
