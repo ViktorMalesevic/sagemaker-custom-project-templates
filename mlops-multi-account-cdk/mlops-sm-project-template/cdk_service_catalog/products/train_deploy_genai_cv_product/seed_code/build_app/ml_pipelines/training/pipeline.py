@@ -144,7 +144,10 @@ def get_pipeline(
     Returns:
         an instance of a pipeline
     """
-    logger = logging.getLogger('Pipeline')
+
+    logging.basicConfig(level=logging.INFO)
+    logger: logging.Logger = logging.getLogger('Pipeline')
+
     logger.info(f'sagemaker_project_name : {sagemaker_project_name}, '
                 f'bucket_kms_id : {bucket_kms_id}, default_bucket : {default_bucket}, role : {role}')
 
@@ -172,11 +175,11 @@ def get_pipeline(
 
     instance_token = ParameterString(
         name="InstanceToken",
-        default_value="A bee on the floor",
+        default_value="A photo of a Doppler dog",
     )
     class_token = ParameterString(
         name="ClassToken",
-        default_value="bee"
+        default_value="A photo of a dog"
     )
 
     # training step for generating model artifacts
