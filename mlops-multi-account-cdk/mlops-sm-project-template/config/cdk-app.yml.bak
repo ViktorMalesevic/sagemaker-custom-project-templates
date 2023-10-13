@@ -1,0 +1,65 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# SPDX-License-Identifier: MIT-0
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+cdk_app_config:
+  app_prefix: mlops-cdk
+  pipeline:
+    account: xxxxxxxxxxxx
+    region: us-east-1
+    code_commit:
+      repo_name: mlops-sm-project-template
+      branch_name: main
+  product_search:
+    config_filename: - default value to mlops_project.yml
+    discovery_type: class|config|hybrid
+    discovery_precedence: class|config|all - default class, this will only be used when discovery_type=hybrid
+  deployments:
+    - set_name: first-example
+      enabled: True
+      default_region: us-east-1
+      stages:
+        - stage_name: dev
+          account: xxxxxxxxxxxx
+          #region: us-east-1
+          #enabled: True
+        - stage_name: preprod
+          account: xxxxxxxxxxxx
+          #region: us-east-1
+          #enabled: True
+        - stage_name: prod
+          account: xxxxxxxxxxxx
+          #region: us-east-1
+          #enabled: True
+
+    - set_name: second-example
+      enabled: False
+      default_region: us-east-1
+      stages:
+        - stage_name: dev
+          account: xxxxxxxxxxxx
+          region: us-east-1
+          enabled: True
+        - stage_name: preprod
+          account: xxxxxxxxxxxx
+          region: us-east-1
+          enabled: True
+        - stage_name: prod
+          account: xxxxxxxxxxxx
+          region: us-east-1
+          enabled: True
+

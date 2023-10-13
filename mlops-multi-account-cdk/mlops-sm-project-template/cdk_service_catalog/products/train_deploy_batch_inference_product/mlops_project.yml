@@ -1,0 +1,23 @@
+mlops_project_config:
+  metadata:
+    description: |-
+      This template includes a build and a deploy code repository (CodeCommit) associated 
+      to their respective CICD pipeline (CodePipeline). The build repository and CICD pipeline 
+      are used to run SageMaker pipeline(s) in dev and promote the pipeline definition to an 
+      artefact bucket. The deploy repository and CICD pipeline loads the artefact SageMaker 
+      pipeline definition to create a Sagemaker pipeline in preprod and production as 
+      infrastructure as code (eg for batch inference). The target PREPROD/PROD accounts are 
+      provided as cloudformation parameters and must be provided during project creation. 
+      The PREPROD/PROD accounts need to be cdk bootstraped in advance to have the right 
+      CloudFormation execution cross account roles.
+    product_name: Configuration based MLOps Batch Inference template to build and deploy SageMaker pipeline
+    support_email: configuration_batch_inference_project@example.com
+    support_url: https://example.com/support/configuration_based_batch_inference_project
+    support_description: Example of support details for configuration based batch inference project
+  seed_code:
+    app_type: batch
+    build_app_relative_path: ./seed_code/build_app
+    deploy_app_relative_path: ./seed_code/deploy_app
+  deployment:
+    infra_set_names:
+      - first-example
