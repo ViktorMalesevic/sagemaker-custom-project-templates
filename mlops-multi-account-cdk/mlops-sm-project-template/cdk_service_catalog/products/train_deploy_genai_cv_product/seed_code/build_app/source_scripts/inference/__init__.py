@@ -15,13 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-VPC_ID = "vpc-"
-VPC_CIDR = "10.0.0.1/21"
-
-APP_SUBNETS = ["subnet-1", "subnet-2", "subnet-3"]
-
-BASE_SECURITY_GROUP = "sg-"
-
-DEFAULT_TIMEOUT = 300
-DEFAULT_MEMORY_SIZE = 256
-INFERENCE_MEMORY_SIZE = 1024
+# © 2021 Amazon Web Services, Inc. or its affiliates. All Rights Reserved. This
+# AWS Content is provided subject to the terms of the AWS Customer Agreement
+# available at http://aws.amazon.com/agreement or other written agreement between
+# Customer and either Amazon Web Services, Inc. or Amazon Web Services EMEA SARL
+# or both.
+#
+# Any code, applications, scripts, templates, proofs of concept, documentation
+# and other items provided by AWS under this SOW are "AWS Content," as defined
+# in the Agreement, and are provided for illustration purposes only. All such
+# AWS Content is provided solely at the option of AWS, and is subject to the
+# terms of the Addendum and the Agreement. Customer is solely responsible for
+# using, deploying, testing, and supporting any code and applications provided
+# by AWS under this SOW.
