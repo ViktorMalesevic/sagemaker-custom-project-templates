@@ -239,6 +239,7 @@ def get_pipeline(
         max_run=360000,
         hyperparameters=hyperparameters,
         output_path=output_path,
+        output_kms_key=bucket_kms_id,
         base_job_name=training_job_name,
         transformers_version="4.17.0",
         pytorch_version="1.10.2",
