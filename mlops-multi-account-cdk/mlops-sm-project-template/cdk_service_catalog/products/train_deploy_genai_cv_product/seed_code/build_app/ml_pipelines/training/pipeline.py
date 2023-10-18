@@ -270,6 +270,7 @@ def get_pipeline(
         py_version="py38",
         entry_point="inference.py",
         source_dir="source_scripts/inference",
+        model_kms_key=bucket_kms_id
     )
     step_args = model.register(
         content_types=["application/json", "application/x-text"],
