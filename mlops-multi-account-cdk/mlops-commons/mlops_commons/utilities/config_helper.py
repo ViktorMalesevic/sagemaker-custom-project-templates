@@ -50,17 +50,18 @@ class ConfigHelper(object):
 
         self.logger.info(f'cdk app base directory : {self.base_dir}')
 
-        yaml_config_path: str = os.path.join(
+        self.yaml_config_path: str = os.path.join(
             self.base_dir,
             'config',
             self.CONFIG_YAML_FILE_NAME
         )
+        self.backup_config_path: str = f'{self.yaml_config_path}_original_backup.bak'
 
-        self.logger.info(f'Trying to loading cdk app configuration file : {yaml_config_path}')
-        if os.path.exists(yaml_config_path):
-            self.app_config.load(Path(yaml_config_path))
+        self.logger.info(f'Trying to loading cdk app configuration file : {self.yaml_config_path}')
+        if os.path.exists(self.yaml_config_path):
+            self.app_config.load(Path(self.yaml_config_path))
         else:
-            self.logger.error(f'Cdk app configuration file not found : {yaml_config_path}')
+            self.logger.error(f'Cdk app configuration file not found : {self.yaml_config_path}')
             sys.exit(1)
 
         self.INSTANCE_INITIALIZED = True
@@ -74,6 +75,25 @@ class ConfigHelper(object):
     @staticmethod
     def get_config() -> CdkAppConfig:
         return ConfigHelper().app_config.cdk_app_config
+
+    def backup_config_file(self):
+        if os.path.exists(self.yaml_config_path) and not os.path.exists(self.backup_config_path):
+            os.rename(self.yaml_config_path, self.backup_config_path)
+
+    def restore_config_file(self):
+        if os.path.exists(self.yaml_config_path):
+            os.remove(self.yaml_config_path)
+        if os.path.exists(self.backup_config_path):
+            os.rename(self.backup_config_path, self.yaml_config_path)
+
+    def create_set_name_specific_config(self, set_name) -> None:
+        con_dict = yaml.safe_load(open(self.backup_config_path, 'r', encoding='utf-8'))
+        con_dict['cdk_app_config']['deployments'] = [deployment for deployment in
+                                                     con_dict['cdk_app_config']['deployments'] if
+                                                     deployment.get('set_name', None) == set_name]
+
+        with open(self.yaml_config_path, 'w', encoding='utf-8') as yml_stream:
+            yaml.dump(con_dict, yml_stream, default_flow_style=False, sort_keys=False)
 
     @classmethod
     def create_config_file(cls) -> None:

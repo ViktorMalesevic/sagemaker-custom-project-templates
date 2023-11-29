@@ -51,7 +51,7 @@ class CdkPipelineCodeCommitStack(Stack):
             repository_name=f'{conf.repo_name}_{set_name}',
             description="CDK Code with MLOps Infra project",
             code=codecommit.Code.from_zip_file(file_path=ZipUtility.create_zip(
-                source_code_dirs),
+                source_code_dirs, out_file_suffix=set_name),
                 branch=conf.branch_name
             )
         )
