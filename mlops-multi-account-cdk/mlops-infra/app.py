@@ -41,8 +41,7 @@ class MLOpsInfraCdkApp:
         self.logger.info('Starting cdk app...')
 
         app = cdk.App()
-        config_helper: ConfigHelper = ConfigHelper()
-        cac: CdkAppConfig = config_helper.app_config.cdk_app_config
+        cac: CdkAppConfig = ConfigHelper.get_config()
 
         for dc in cac.deployments:
 
@@ -55,22 +54,11 @@ class MLOpsInfraCdkApp:
                                  f'enabled=True at deployments level in yaml configuration file ')
                 continue
 
-            # if there are more than on business unit config then backup main config file
-            # then create a business unit specific config
-            # then create code commit repo
-            # then restore the config file for local reference but this main file will not be available in specific repo
-            if len(cac.deployments) > 1:
-                config_helper.backup_config_file()
-                config_helper.create_set_name_specific_config(set_name=dc.set_name)
-
             repo_stack: CdkPipelineCodeCommitStack = CdkPipelineCodeCommitStack.get_instance(
                 app,
                 set_name=dc.set_name,
                 pipeline_conf=cac.pipeline
             )
-
-            if len(cac.deployments) > 1:
-                config_helper.restore_config_file()
 
             CdkPipelineStack(
                 app,

@@ -23,7 +23,7 @@ import yaml
 import argparse
 from logging import Logger
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, List
 import random
 from mlops_commons.utilities.cdk_app_config import (
     AppConfig,
@@ -55,7 +55,6 @@ class ConfigHelper(object):
             'config',
             self.CONFIG_YAML_FILE_NAME
         )
-        self.backup_config_path: str = f'{self.yaml_config_path}_original_backup.bak'
 
         self.logger.info(f'Trying to loading cdk app configuration file : {self.yaml_config_path}')
         if os.path.exists(self.yaml_config_path):
@@ -76,24 +75,25 @@ class ConfigHelper(object):
     def get_config() -> CdkAppConfig:
         return ConfigHelper().app_config.cdk_app_config
 
-    def backup_config_file(self):
-        if os.path.exists(self.yaml_config_path) and not os.path.exists(self.backup_config_path):
-            os.rename(self.yaml_config_path, self.backup_config_path)
+    def create_set_name_specific_config_as_str(self, set_name) -> str:
 
-    def restore_config_file(self):
-        if os.path.exists(self.yaml_config_path):
-            os.remove(self.yaml_config_path)
-        if os.path.exists(self.backup_config_path):
-            os.rename(self.backup_config_path, self.yaml_config_path)
-
-    def create_set_name_specific_config(self, set_name) -> None:
-        con_dict = yaml.safe_load(open(self.backup_config_path, 'r', encoding='utf-8'))
+        con_dict = yaml.safe_load(open(self.yaml_config_path, 'r', encoding='utf-8'))
         con_dict['cdk_app_config']['deployments'] = [deployment for deployment in
                                                      con_dict['cdk_app_config']['deployments'] if
                                                      deployment.get('set_name', None) == set_name]
+        lic: str = self.get_license_str()
+        return ''.join([lic, os.linesep, os.linesep, yaml.dump(con_dict, default_flow_style=False, sort_keys=False)])
 
-        with open(self.yaml_config_path, 'w', encoding='utf-8') as yml_stream:
-            yaml.dump(con_dict, yml_stream, default_flow_style=False, sort_keys=False)
+    @staticmethod
+    def get_license_str():
+        result: List[str] = list()
+        with open(__file__, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip().startswith('#'):
+                    result.append(line)
+                elif len(result) > 3 and line.strip() == '':
+                    break
+        return ''.join(result)
 
     @classmethod
     def create_config_file(cls) -> None:
