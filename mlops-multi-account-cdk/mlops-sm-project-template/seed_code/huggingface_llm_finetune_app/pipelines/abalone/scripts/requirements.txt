@@ -1,0 +1,15 @@
+optuna==3.2.0
+sagemaker==2.179.0
+transformers==4.31.0
+peft==0.4.0
+accelerate==0.21.0
+bitsandbytes==0.40.2
+datasets[s3]==2.10.1
+loralib
+einops
+ipywidgets
+deepspeed
+bert_score
+evaluate
+safetensors
+
